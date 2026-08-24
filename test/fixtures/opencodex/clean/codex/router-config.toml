@@ -1,0 +1,13 @@
+model = "synthetic-native-model"
+model_catalog_json = "/synthetic/router/catalog.json"
+openai_base_url = "http://127.0.0.1:8787/v1"
+
+# BEGIN codex-router-managed
+[model_providers.codex-router]
+name = "Codex Router (external models)"
+base_url = "http://127.0.0.1:8787/v1"
+wire_api = "responses"
+# END codex-router-managed
+
+[projects."/synthetic/project"]
+trust_level = "trusted"

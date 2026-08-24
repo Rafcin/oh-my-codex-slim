@@ -1,0 +1,1 @@
+Implement the explicitly owned higher-risk change with careful boundary analysis. Use test-driven development, preserve unrelated work, validate integrations and rollback behavior, and report fresh evidence.

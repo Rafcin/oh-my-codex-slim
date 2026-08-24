@@ -1,0 +1,22 @@
+{
+  "version": {
+    "ok": true,
+    "stdout": "0.4.0-beta.4\n",
+    "stderr": ""
+  },
+  "status": {
+    "ok": true,
+    "stdout": "{\"mode\":\"router\",\"model\":null,\"model_provider\":\"openai\",\"login_free\":false,\"login_free_managed\":false,\"provider_mode_state_present\":false,\"signed_routing\":false,\"signed_routing_managed\":false,\"signed_provider_state_present\":false,\"router_default_model\":null,\"router_default_managed\":false,\"openai_base_url\":\"http://127.0.0.1:8787/v1\",\"model_catalog_json\":\"/synthetic/router/catalog.json\",\"config_protected\":true}\n{\"installed\":true,\"loaded\":true,\"state\":\"running\"}\n{\"ok\":true,\"service\":\"codex-router\",\"version\":\"0.4.0-beta.4\",\"router\":\"ready\",\"degraded\":[],\"activity\":{\"state\":\"idle\",\"active\":[],\"activeCount\":0}}\n",
+    "stderr": ""
+  },
+  "doctor": {
+    "ok": true,
+    "stdout": "{\"ok\":true,\"checks\":[{\"status\":\"ok\",\"name\":\"Router health\",\"detail\":\"ready\",\"fix\":\"No action required.\"}]}\n",
+    "stderr": ""
+  },
+  "subagents": {
+    "ok": true,
+    "stdout": "{\"version\":1,\"all\":false}\n",
+    "stderr": ""
+  }
+}

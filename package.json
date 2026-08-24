@@ -1,0 +1,93 @@
+{
+  "name": "oh-my-codex-slim",
+  "version": "0.1.0",
+  "description": "Slim Codex-native launcher",
+  "type": "module",
+  "bin": {
+    "omcs": "dist/cli/omcs.js"
+  },
+  "scripts": {
+    "build": "node -e \"const fs=require('fs'); fs.rmSync('dist',{recursive:true,force:true});\" && tsc && node -e \"require('fs').chmodSync('dist/cli/omcs.js', 0o755)\"",
+    "dev": "tsc --watch",
+    "lint": "biome lint src",
+    "sync:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts --sync",
+		"test": "npm run build && node --test dist/cli/__tests__/package-bin-contract.test.js dist/cli/__tests__/slim-boundary.test.js",
+		"verify:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts",
+		"verify:release": "node --experimental-strip-types src/scripts/verify-release.ts"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "files": [
+		"dist/cli/omcs.js",
+		"dist/cli/index.js",
+		"dist/cli/doctor.js",
+		"dist/cli/status.js",
+		"dist/cli/setup.js",
+		"dist/cli/update.js",
+		"dist/cli/uninstall.js",
+		"dist/cli/agents-lifecycle.js",
+		"dist/cli/plugin-marketplace.js",
+		"dist/cli/plugin-registration.js",
+		"dist/cli/package-root.js",
+		"dist/cli/mcp-health.js",
+		"dist/agents/catalog.js",
+		"dist/agents/install.js",
+		"dist/config/codex-home.js",
+		"dist/config/generator.js",
+		"dist/config/managed-files.js",
+		"dist/config/safe-reader.js",
+		"dist/router/adapter.js",
+		"dist/router/commands.js",
+		"dist/router/types.js",
+		"dist/router/migrate-opencodex.js",
+		"dist/router/migration-manifest.js",
+		"dist/mcp/ast.js",
+		"dist/mcp/codemap.js",
+		"dist/mcp/lsp.js",
+		"dist/mcp/server.js",
+		"dist/orchestration/risk.js",
+		"dist/orchestration/packets.js",
+		".agents/plugins/marketplace.json",
+		"plugins/oh-my-codex-slim/",
+		"README.md",
+		"docs/installation.md",
+		"docs/architecture.md",
+			"docs/opencodex.md",
+		"docs/troubleshooting.md",
+		"LICENSE",
+    "THIRD_PARTY_NOTICES.md"
+  ],
+  "keywords": [
+    "codex",
+    "openai",
+    "cli",
+    "agents",
+    "orchestration",
+    "multi-agent"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ast-grep/cli": "0.45.1",
+    "@iarna/toml": "2.2.5",
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@napi-rs/lzma": "1.4.1",
+    "tar-stream": "3.2.0",
+    "yauzl": "3.4.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.4.4",
+    "@types/node": "^26.0.0",
+    "@types/tar-stream": "3.1.4",
+    "@types/yauzl": "3.4.0",
+    "@types/yazl": "3.3.1",
+    "c8": "^11.0.0",
+    "typescript": "^7.0.2",
+    "yazl": "3.3.1"
+  },
+  "overrides": {
+    "ajv": "8.20.0",
+    "hono": "4.13.3"
+  }
+}

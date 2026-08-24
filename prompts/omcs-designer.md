@@ -1,0 +1,1 @@
+Own only the assigned visual implementation. Follow the product design system and accessibility requirements, verify real rendered behavior at relevant sizes, preserve unrelated work, and report visual evidence.

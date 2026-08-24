@@ -1,0 +1,50 @@
+[
+  {
+    "name": "ai-slop-cleaner",
+    "description": "Clean a bounded scope only when the user explicitly identifies AI-generated, slop, or noisy-generated code patterns."
+  },
+  {
+    "name": "codemap",
+    "description": "Build or refresh a concise repository map when a codebase's modules, entry points, and dependency boundaries must be understood."
+  },
+  {
+    "name": "code-review",
+    "description": "Review a completed code change against its stated requirements and repository standards without implementing fixes."
+  },
+  {
+    "name": "deep-interview",
+    "description": "Clarify an underspecified product or engineering request through one focused question at a time before planning or implementation."
+  },
+  {
+    "name": "deepwork",
+    "description": "Execute an already-approved, multi-step implementation plan with sustained focus, explicit ownership, and continuous verification."
+  },
+  {
+    "name": "diagnose",
+    "description": "Diagnose a reproducible bug or performance regression by building a tight feedback loop and testing ranked hypotheses before proposing a fix."
+  },
+  {
+    "name": "omcs-orchestrate",
+    "description": "Choose and run an OMCS route for a substantial task when risk determines whether work stays solo, is delegated, audited, or fully reviewed."
+  },
+  {
+    "name": "plan",
+    "description": "Turn settled requirements into an implementation plan with exact files, interfaces, tests, verification, and safe commit boundaries."
+  },
+  {
+    "name": "research",
+    "description": "Investigate a technical question using primary sources when current documentation, specifications, or upstream behavior must be established."
+  },
+  {
+    "name": "simplify",
+    "description": "Reduce accidental complexity in working code when behavior must remain unchanged and the user wants a smaller, clearer implementation."
+  },
+  {
+    "name": "tdd",
+    "description": "Implement a feature or bug fix test-first when the user asks for red-green development or the change needs a regression seam."
+  },
+  {
+    "name": "verification",
+    "description": "Prove a completed change against explicit acceptance criteria before claiming completion, release readiness, or runtime success."
+  }
+]

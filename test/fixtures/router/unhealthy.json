@@ -1,0 +1,12 @@
+{
+  "version": {
+    "ok": true,
+    "stdout": "0.4.0-beta.4\n",
+    "stderr": ""
+  },
+  "status": {
+    "ok": false,
+    "code": "unhealthy-router",
+    "message": "Codex Router is installed but unavailable"
+  }
+}

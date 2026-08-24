@@ -1,0 +1,7 @@
+model = "synthetic-native-model"
+model_catalog_json = "__CATALOG_PATH__"
+# Auto-injected by opencodex
+openai_base_url = "http://127.0.0.1:10100/v1"
+
+[projects."/synthetic/project"]
+trust_level = "trusted"

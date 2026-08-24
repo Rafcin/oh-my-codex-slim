@@ -1,0 +1,4 @@
+model = "synthetic-native-model"
+
+[projects."/synthetic/project"]
+trust_level = "trusted"

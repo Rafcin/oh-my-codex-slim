@@ -1,0 +1,7 @@
+{
+  "version": {
+    "ok": false,
+    "code": "missing-router",
+    "message": "Codex Router is not installed"
+  }
+}

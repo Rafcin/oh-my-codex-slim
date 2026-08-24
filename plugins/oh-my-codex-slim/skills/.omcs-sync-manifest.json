@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "files": {
+    "ai-slop-cleaner/SKILL.md": "022f4ec8ccce5e99521b7de0bf13d7a8756bd7112503ee8442b505c1d304b36f",
+    "code-review/SKILL.md": "10f52e903cd0593c6d0c023a756417c72a036fda9f98a4c937ce11cda02cbcea",
+    "codemap/references/clone-dependency.md": "a59ea60f198d6c50a87d2bb55ca816074565e01aff7ecf7391f2a0b7ced8b4a4",
+    "codemap/SKILL.md": "d9378eca03a5cc713ef73909ef267a0ecb4fdd64d117a4492a52ac7428054b3b",
+    "deep-interview/SKILL.md": "5ec6b1e1d919c9d520c91b5fe981c8deda218eca5687c4284b253f6c6d2d1f52",
+    "deepwork/references/worktrees.md": "ddc8824075ff4ebb75b312465b74dc4d340b7ede49c15de55187bd48f3e5c3d0",
+    "deepwork/SKILL.md": "60243e7e80170dc5403f44c10422b80a080e7a3257b6435ea935e86a19d80252",
+    "diagnose/SKILL.md": "b2dcbe10b3d0c4afbed7771d9834e529ff165e7cd1b9b6e58183a5e4c2c0c4e5",
+    "omcs-orchestrate/SKILL.md": "47ef4e8e39796feb90e2dd818de45d2e49719245ad84ce9a6d92987781221a0d",
+    "plan/SKILL.md": "1d19c8ea12ee05fcacf9ad16a1d6e0343c218fb78e192e9d46e6a17981f43dbc",
+    "research/SKILL.md": "7ee4027b09ceeadd5524ad80f024e868e9e107c1621d597fca8549125365dede",
+    "simplify/SKILL.md": "1b8d0f523c8505101f5398f5908b14e20126e892b2a5d2abc92123710ad2f8c2",
+    "tdd/SKILL.md": "3aff2db03098451358af3eb47f8040641eefbebe16ff7ee64b9e11c66607583e",
+    "verification/SKILL.md": "53bb9af0e1c5edd609856c11957f21ba5dea6c2837c8724b9b8ecd835d073834"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "omcs_code_intel": {
+      "command": "omcs",
+      "args": [
+        "mcp-serve",
+        "code-intel"
+      ],
+      "enabled": true
+    }
+  }
+}

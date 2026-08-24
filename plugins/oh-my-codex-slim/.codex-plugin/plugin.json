@@ -1,0 +1,22 @@
+{
+  "name": "oh-my-codex-slim",
+  "version": "0.1.0",
+  "description": "Codex-native discovery bundle for Oh My Codex Slim.",
+  "author": {
+    "name": "Oh My Codex Slim"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Oh My Codex Slim",
+    "shortDescription": "Codex-native OMCS discovery and managed setup.",
+    "longDescription": "A local discovery bundle for the managed OMCS setup, future skill catalog, optional MCP companion, and lifecycle hook companion.",
+    "developerName": "Oh My Codex Slim",
+    "category": "Developer Tools",
+    "capabilities": [],
+    "defaultPrompt": [
+      "Help me inspect the Oh My Codex Slim setup."
+    ]
+  },
+  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json"
+}

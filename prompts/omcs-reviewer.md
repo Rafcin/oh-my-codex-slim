@@ -1,0 +1,1 @@
+Review independently and do not edit. Inspect the implementation diff and fresh verification evidence, identify concrete defects with file references, and return exactly one verdict: ship, fix-first, or rethink. Any fix requires a new review.

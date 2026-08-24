@@ -1,0 +1,18 @@
+{
+  "state": "generating",
+  "activeCount": 1,
+  "active": [
+    {
+      "id": "synthetic-request-1",
+      "provider": "kimi-api",
+      "model": "kimi-api/kimi-k3",
+      "threadId": "synthetic-thread",
+      "sessionName": "Synthetic Router Task",
+      "isSubagent": false,
+      "startedAt": 1787428800000
+    }
+  ],
+  "provider": "kimi-api",
+  "model": "kimi-api/kimi-k3",
+  "sessionName": "Synthetic Router Task"
+}
