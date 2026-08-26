@@ -42,6 +42,7 @@ interface Pattern {
 const patterns: readonly Pattern[] = [
 	{ rule: "authorization-header", pattern: /\bauthorization\s*:\s*(?:bearer|basic|token)\s+([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
 	{ rule: "aws-access-key", pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, value: (match) => match[0] },
+	{ rule: "aws-secret-access-key", pattern: /\bAWS_SECRET_ACCESS_KEY\s*[:=]\s*["']?([A-Za-z0-9+/]{40})["']?/g, value: (match) => match[1] ?? "" },
 	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=\"?([A-Za-z0-9._~+/-]{8,})\"?/gi, value: (match) => match[1] ?? "" },
 	{ rule: "credentialed-url", pattern: /\b(?:https?|git|ssh):\/\/[^\s:/@]+:([^\s/@?#]{8,})@[^\s/@]+/gi, value: (match) => match[1] ?? "" },
 	{ rule: "github-token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})\b/g, value: (match) => match[0] },
@@ -53,7 +54,7 @@ const patterns: readonly Pattern[] = [
 	{ rule: "provider-token", pattern: /\b(?:xai|sk-ant|AIza)[-_]?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
 	{ rule: "secret-assignment", pattern: /\b(?:api[_-]?key|client[_-]?secret|access[_-]?key|access[_-]?token|auth[_-]?token|password|secret)\s*[:=]\s*["']?([A-Za-z0-9._~+/-]{16,255})/gi, value: (match) => match[1] ?? "" },
 	{ rule: "slack-token", pattern: /\bxox[baprs]-[A-Za-z0-9-]{20,255}\b/g, value: (match) => match[0] },
-	{ rule: "stripe-live-key", pattern: /\bsk_live_[A-Za-z0-9]{16,255}\b/g, value: (match) => match[0] },
+	{ rule: "stripe-live-key", pattern: /\b(?:sk|rk)_live_[A-Za-z0-9]{16,255}\b/g, value: (match) => match[0] },
 ];
 
 function sanitizedGitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
@@ -95,8 +96,10 @@ function printableStrings(bytes: Buffer): string {
 
 function documentedPlaceholder(value: string): boolean {
 	const normalized = value.toLowerCase();
-	return /^(?:redacted|example|placeholder)(?:[-_][a-z0-9._-]+)?$/.test(normalized)
-		|| /(?:^|[-_])synthetic(?:[-_]|$)/.test(normalized);
+	const withoutKnownPrefix = normalized.replace(/^(?:sk-(?:proj-)?|sk-ant[-_]?|xai[-_]?|aiza[-_]?|xox[baprs]-|glpat-|gh[pousr]_|github_pat_|npm_|(?:sk|rk)_live_)/, "");
+	return [normalized, withoutKnownPrefix].some((candidate) =>
+		/^(?:redacted|example|placeholder)(?:[-_][a-z0-9._-]+)?$/.test(candidate)
+		|| /^synthetic(?:[-_][a-z0-9._-]+)+$/.test(candidate));
 }
 
 function documentedSyntheticLocalPath(value: string): boolean {

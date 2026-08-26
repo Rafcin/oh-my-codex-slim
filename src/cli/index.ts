@@ -9,6 +9,7 @@ import { uninstall } from "./uninstall.js";
 import { update } from "./update.js";
 import { configureOmcs, showEffectiveConfig, validateOmcsConfigFile } from "./config.js";
 import { resolveCodexHome } from "../config/codex-home.js";
+import { findProjectRoot } from "../config/omcs-config.js";
 import { omcsPackageRoot } from "./package-root.js";
 import { symbolizeShareableOutput } from "./shareable-output.js";
 
@@ -28,9 +29,11 @@ Usage:
   omcs config validate [path] [--json]
 `;
 
-function writeResult(value: unknown, asJson: boolean): void {
+async function writeResult(value: unknown, asJson: boolean): Promise<void> {
+	const cwd = process.cwd();
 	const shareable = symbolizeShareableOutput(value, {
-		cwd: process.cwd(),
+		cwd,
+		projectRoot: await findProjectRoot(cwd),
 		codexHome: resolveCodexHome(),
 		packageRoot: omcsPackageRoot(),
 	});
@@ -102,7 +105,7 @@ export async function main(
 					invalid("setup");
 					return;
 				}
-				writeResult(
+				await writeResult(
 					{
 						command,
 						dryRun: parsed.dryRun,
@@ -119,7 +122,7 @@ export async function main(
 					invalid("update");
 					return;
 				}
-				writeResult(
+				await writeResult(
 					{
 						command,
 						dryRun: parsed.dryRun,
@@ -148,7 +151,7 @@ export async function main(
 			}
 			const parsed = flags(remaining, ["--update", "--dry-run", "--json"]);
 			if (!scope || !profile || !parsed || (scope === "session" && remaining.includes("--update"))) { invalid("configure"); return; }
-			writeResult(await configureOmcs({ scope, profile, update: remaining.includes("--update"), dryRun: parsed.dryRun }), parsed.json);
+			await writeResult(await configureOmcs({ scope, profile, update: remaining.includes("--update"), dryRun: parsed.dryRun }), parsed.json);
 			return;
 		}
 		case "config": {
@@ -156,7 +159,7 @@ export async function main(
 			if (subcommand === "show") {
 				const parsed = flags(configOptions, ["--effective", "--json"]);
 				if (!parsed || !configOptions.includes("--effective")) { invalid("config show"); return; }
-				writeResult(await showEffectiveConfig(), parsed.json);
+				await writeResult(await showEffectiveConfig(), parsed.json);
 				return;
 			}
 			if (subcommand === "validate") {
@@ -164,7 +167,7 @@ export async function main(
 				const switches = configOptions.filter((option) => option.startsWith("--"));
 				const parsed = flags(switches, ["--json"]);
 				if (!parsed || positionals.length > 1) { invalid("config validate"); return; }
-				writeResult(await validateOmcsConfigFile(positionals[0] ?? "omcs.config.json"), parsed.json);
+				await writeResult(await validateOmcsConfigFile(positionals[0] ?? "omcs.config.json"), parsed.json);
 				return;
 			}
 			invalid("config");
@@ -178,7 +181,7 @@ export async function main(
 					return;
 				}
 				const report = await doctor();
-				writeResult(report, parsed.json);
+				await writeResult(report, parsed.json);
 				if (!report.ok) process.exitCode = 1;
 			}
 			return;
@@ -189,7 +192,7 @@ export async function main(
 					invalid("status");
 					return;
 				}
-				writeResult(await status(), parsed.json);
+				await writeResult(await status(), parsed.json);
 			}
 			return;
 		case "agents": {
@@ -209,7 +212,7 @@ export async function main(
 				invalid(`agents ${action}`);
 				return;
 			}
-			writeResult(
+			await writeResult(
 				await agentsLifecycle(action, { dryRun: parsed.dryRun }),
 				parsed.json,
 			);
@@ -222,7 +225,7 @@ export async function main(
 					invalid("uninstall");
 					return;
 				}
-				writeResult(
+				await writeResult(
 					{
 						command,
 						dryRun: parsed.dryRun,

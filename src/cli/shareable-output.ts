@@ -2,6 +2,7 @@ import { basename, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 export interface ShareableOutputContext {
 	cwd: string;
+	projectRoot?: string | null;
 	codexHome: string;
 	packageRoot: string;
 }
@@ -18,8 +19,8 @@ function symbolizePath(path: string, context: ShareableOutputContext): string {
 	}
 	const fromCodexHome = within(context.codexHome, path);
 	if (fromCodexHome) return `\${CODEX_HOME}/${fromCodexHome}`;
-	if (basename(path) === "omcs.config.json") return "project:omcs.config.json";
-	const fromProject = within(context.cwd, path);
+	const fromProject = within(context.projectRoot ?? context.cwd, path);
+	if (fromProject === "omcs.config.json") return "project:omcs.config.json";
 	if (fromProject) return `project:${fromProject}`;
 	const fromPackage = within(context.packageRoot, path);
 	if (fromPackage) return `package:${fromPackage}`;

@@ -27,10 +27,6 @@ OpenCodex may manage Codex routing fields and its own journal/profile metadata. 
 
 ## Legacy rollback
 
-The source tree contains an attributed, ownership-safe rollback implementation for manifests created by the earlier OpenCodex-to-Codex-Router experiment. This exists to preserve user rollback state, not to advertise a current cutover path. Use it only with the exact existing manifest:
-
-```bash
-omcs migrate opencodex --rollback /absolute/path/to/opencodex-migration.json --json
-```
+The source tree retains attributed rollback compatibility for manifests created by the earlier OpenCodex-to-Codex-Router experiment. The public OMCS CLI does not expose that repository-only implementation and rejects every `migrate` command because no Router runtime is shipped. Preserve the exact mode-`0600` manifest and backups; recovery requires the exact matching source revision plus a separate reviewed plan. Never guess at a rollback command.
 
 The OpenCodex MIT notice identifies `opencodex contributors` and authoritative repository owner `lidge-jun`; no fuller personal author name is published in the inspected notice. Legacy Codex Router compatibility retains its own exact attribution. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).

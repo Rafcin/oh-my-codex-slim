@@ -147,6 +147,40 @@ describe("public secret scan", () => {
 		}
 	});
 
+	it("does not let an embedded synthetic word exempt a production-shaped secret", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "synthetic-bypass.txt"), [
+				["pass", "word=actual-synthetic-production-secret"].join(""),
+				["https://fixture-user:actual-synthetic-password", "@example.invalid/api"].join(""),
+			].join("\n"));
+			stage(root);
+			assert.deepEqual(await scanPublicFiles(root), [
+				{ path: "synthetic-bypass.txt", rule: "credentialed-url" },
+				{ path: "synthetic-bypass.txt", rule: "secret-assignment" },
+			]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("detects AWS secret access keys and Stripe live restricted keys", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "additional-credentials.txt"), [
+				["AWS_SECRET_ACCESS_", "KEY=", "H".repeat(40)].join(""),
+				["rk", "_live_", "J".repeat(24)].join(""),
+			].join("\n"));
+			stage(root);
+			assert.deepEqual(await scanPublicFiles(root), [
+				{ path: "additional-credentials.txt", rule: "aws-secret-access-key" },
+				{ path: "additional-credentials.txt", rule: "stripe-live-key" },
+			]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("reports approved-only and bare local home paths without exposing either username", async () => {
 		const root = await fixture();
 		try {

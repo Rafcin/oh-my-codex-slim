@@ -17,14 +17,17 @@ describe("strict OMCS command parsing", () => {
 			config: join(localRoot, "project", "omcs.config.json"),
 			doctor: join(localRoot, "package", ".agents", "plugins", "marketplace.json"),
 			status: join(localRoot, ".codex", "oh-my-codex-slim", "config.json"),
+			external: join(localRoot, "outside", "omcs.config.json"),
 		}, {
 			cwd: join(localRoot, "project"),
+			projectRoot: join(localRoot, "project"),
 			codexHome: join(localRoot, ".codex"),
 			packageRoot: join(localRoot, "package"),
 		}), {
 			config: "project:omcs.config.json",
 			doctor: "package:marketplace.json",
 			status: "${CODEX_HOME}/oh-my-codex-slim/config.json",
+			external: "local:omcs.config.json",
 		});
 	});
 
