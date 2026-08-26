@@ -27,5 +27,5 @@
     <g transform="translate(997 522)"><rect width="205" height="104" rx="18" fill="#BE123C"/><text x="102" y="41" font-size="20" font-weight="700" fill="white">full</text><text x="102" y="69" font-size="13" fill="#FFE4E6">worker, architect, reviewer</text></g>
   </g>
   <g fill="none" stroke="#A5B4FC" stroke-width="4" marker-end="url(#arrow)"><path d="M878 424 V478 H244 V512"/><path d="M878 424 V478 H529 V512"/><path d="M878 424 V478 H814 V512"/><path d="M878 424 V478 H1099 V512"/></g>
-  <text x="1275" y="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" fill="#FDE68A">Every route ends in architect-owned evidence.</text>
+  <text x="720" y="676" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" fill="#FDE68A">Every route ends in architect-owned acceptance evidence.</text>
 </svg>

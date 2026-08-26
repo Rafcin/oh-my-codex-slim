@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import { readdir, readFile, stat } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +32,43 @@ export interface PublicDocsReport {
 
 export interface VerifyPublicDocsOptions {
 	repositoryRoot?: string;
+	pngReviewManifest?: PngReviewManifest;
 }
+
+export interface PngReviewFixture {
+	sha256: string;
+	visibleText: readonly string[];
+}
+
+export type PngReviewManifest = Readonly<Record<(typeof screenshotNames)[number], PngReviewFixture>>;
+
+/** Exact reviewed fixture bytes bind this text-only manifest to the rendered screenshots. */
+export const REVIEWED_PNG_FIXTURES: PngReviewManifest = {
+	"omcs-configure-project.png": {
+		sha256: "c87d603361e1e4b00a058352bbf1b1ca2c3f193d3e4ba9237b20a4c75d182696",
+		visibleText: [
+			"acme-widget — zsh", "/Users/example/acme-widget", "omcs configure --scope project --profile auto --dry-run --json",
+			"scope: project", "action: would-create", "path: /Users/example/acme-widget/omcs.config.json", "bytes: 363", "effectiveProfile: auto",
+			"omcs configure --scope project --profile auto --json", "scope: project", "action: create", "bytes: 363", "effectiveProfile: auto",
+		],
+	},
+	"omcs-route-declaration.png": {
+		sha256: "6dd535368485a38d3d9c4c702efd492f64c16742b564a14662b48b9aa5660e27",
+		visibleText: [
+			"acme-widget — Codex CLI", "/Users/example/acme-widget", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
+			"risk: public interface with persistent configuration", "skills: context, codebase-design, plan, tdd, verification, code-review",
+			"agents: architect → explorer + librarian → terra-fixer → reviewer", "approval: material-decisions",
+		],
+	},
+	"omcs-verification-receipt.png": {
+		sha256: "c002ca9e4744144f8ad6a9329e249c78331a70bc8c9be5b6b59985089d7c5828",
+		visibleText: [
+			"acme-widget — synthetic receipt fixture", "/Users/example/acme-widget",
+			".omcs/runs/2026-08-26T12-00-00-000Z-12345678-1234-4abc-8def-1234567890ab.json", "schemaVersion: 1", "profile: auto", "route: full",
+			"skills: tdd, verification", "agents: omcs_architect, omcs_reviewer", "approval: material-decisions", "command: npm test", "outcome: passed", "verdict: ship",
+		],
+	},
+};
 
 function fail(message: string): never {
 	throw new Error(`documentation-assets: ${message}`);
@@ -46,13 +84,115 @@ function titleFromMermaid(source: string, path: string): string {
 	return title;
 }
 
-function titleFromSvg(source: string, path: string): string {
-	if (!/^<\?xml\s+version=/i.test(source) || !/<svg\b[^>]*\bviewBox="0 0 \d+ \d+"[^>]*>/i.test(source)) {
+interface XmlElement {
+	name: string;
+	attributes: Record<string, string>;
+	children: XmlElement[];
+	text: string;
+}
+
+function readTagEnd(source: string, start: number): number {
+	let quote: "\"" | "'" | undefined;
+	for (let index = start; index < source.length; index += 1) {
+		const char = source[index];
+		if (quote) {
+			if (char === quote) quote = undefined;
+		} else if (char === "\"" || char === "'") quote = char;
+		else if (char === ">") return index;
+	}
+	fail("SVG is not well-formed XML: unterminated tag");
+}
+
+function parseAttributes(source: string, path: string): { name: string; attributes: Record<string, string>; selfClosing: boolean } {
+	const trimmed = source.trim();
+	const selfClosing = trimmed.endsWith("/");
+	const content = (selfClosing ? trimmed.slice(0, -1) : trimmed).trim();
+	const name = /^[A-Za-z_:][A-Za-z0-9_.:-]*/.exec(content)?.[0];
+	if (!name) fail(`SVG is not well-formed XML: invalid element in ${path}`);
+	const attributes: Record<string, string> = {};
+	let index = name.length;
+	while (index < content.length) {
+		while (/\s/.test(content[index] ?? "")) index += 1;
+		if (index === content.length) break;
+		const attribute = /^[A-Za-z_:][A-Za-z0-9_.:-]*/.exec(content.slice(index))?.[0];
+		if (!attribute || attributes[attribute] !== undefined) fail(`SVG is not well-formed XML: invalid attribute in ${path}`);
+		index += attribute.length;
+		while (/\s/.test(content[index] ?? "")) index += 1;
+		if (content[index] !== "=") fail(`SVG is not well-formed XML: missing attribute value in ${path}`);
+		index += 1;
+		while (/\s/.test(content[index] ?? "")) index += 1;
+		const quote = content[index];
+		if (quote !== "\"" && quote !== "'") fail(`SVG is not well-formed XML: unquoted attribute in ${path}`);
+		const end = content.indexOf(quote, index + 1);
+		if (end < 0) fail(`SVG is not well-formed XML: unterminated attribute in ${path}`);
+		attributes[attribute] = content.slice(index + 1, end);
+		index = end + 1;
+	}
+	return { name, attributes, selfClosing };
+}
+
+/** Parses the small, inert SVG subset we ship and rejects malformed XML structurally. */
+export function parseSvgDiagram(source: string, path: string): { title: string; width: number; height: number } {
+	if (!source.startsWith("<?xml")) fail(`SVG is not well-formed XML: missing declaration in ${path}`);
+	const stack: XmlElement[] = [];
+	let root: XmlElement | undefined;
+	let index = 0;
+	while (index < source.length) {
+		const next = source.indexOf("<", index);
+		if (next < 0) {
+			if (source.slice(index).trim() !== "") fail(`SVG is not well-formed XML: trailing text in ${path}`);
+			break;
+		}
+		if (next > index) {
+			const current = stack.at(-1);
+			if (current) current.text += source.slice(index, next);
+		}
+		if (source.startsWith("<?", next)) {
+			const end = source.indexOf("?>", next + 2);
+			if (end < 0) fail(`SVG is not well-formed XML: unterminated declaration in ${path}`);
+			index = end + 2;
+			continue;
+		}
+		if (source.startsWith("<!--", next)) {
+			const end = source.indexOf("-->", next + 4);
+			if (end < 0) fail(`SVG is not well-formed XML: unterminated comment in ${path}`);
+			index = end + 3;
+			continue;
+		}
+		if (source.startsWith("<![CDATA[", next)) {
+			const end = source.indexOf("]]>", next + 9);
+			if (end < 0 || stack.length === 0) fail(`SVG is not well-formed XML: invalid CDATA in ${path}`);
+			const current = stack.at(-1);
+			if (current) current.text += source.slice(next + 9, end);
+			index = end + 3;
+			continue;
+		}
+		if (source.startsWith("</", next)) {
+			const end = source.indexOf(">", next + 2);
+			const name = source.slice(next + 2, end).trim();
+			const current = stack.pop();
+			if (end < 0 || !current || current.name !== name) fail(`SVG is not well-formed XML: mismatched close tag in ${path}`);
+			index = end + 1;
+			continue;
+		}
+		if (source.startsWith("<!", next)) fail(`SVG is not well-formed XML: unsupported declaration in ${path}`);
+		const end = readTagEnd(source, next + 1);
+		const parsed = parseAttributes(source.slice(next + 1, end), path);
+		const node: XmlElement = { name: parsed.name, attributes: parsed.attributes, children: [], text: "" };
+		if (stack.length === 0) {
+			if (root) fail(`SVG is not well-formed XML: multiple roots in ${path}`);
+			root = node;
+		} else stack.at(-1)?.children.push(node);
+		if (!parsed.selfClosing) stack.push(node);
+		index = end + 1;
+	}
+	if (!root || stack.length !== 0 || root.name !== "svg") fail(`SVG is not well-formed XML: incomplete SVG root in ${path}`);
+	const title = root.children.find((child) => child.name === "title")?.text.trim();
+	const viewBox = root.attributes.viewBox?.split(/\s+/).map(Number);
+	if (!title || !viewBox || viewBox.length !== 4 || viewBox[0] !== 0 || viewBox[1] !== 0 || !Number.isFinite(viewBox[2]) || !Number.isFinite(viewBox[3])) {
 		fail(`SVG is not a bounded XML diagram: ${path}`);
 	}
-	const title = /<title>([^<]+)<\/title>/i.exec(source)?.[1]?.trim();
-	if (!title) fail(`SVG has no title: ${path}`);
-	return title;
+	return { title, width: viewBox[2], height: viewBox[3] };
 }
 
 function pngDimensions(bytes: Buffer, path: string): { width: number; height: number } {
@@ -102,6 +242,39 @@ async function assertNoUnsafeContent(root: string): Promise<void> {
 	}
 }
 
+function assertSafeReviewedText(name: string, fixture: PngReviewFixture): void {
+	if (!/^[a-f0-9]{64}$/.test(fixture.sha256) || fixture.visibleText.length === 0) fail(`invalid PNG review manifest: ${name}`);
+	if (unsafeContentPatterns.some((pattern) => fixture.visibleText.some((value) => pattern.test(value)))) fail(`unsafe reviewed PNG text: ${name}`);
+}
+
+async function assertReviewedPng(root: string, name: (typeof screenshotNames)[number], fixture: PngReviewFixture): Promise<void> {
+	assertSafeReviewedText(name, fixture);
+	const bytes = await readFile(join(root, "docs", "assets", name));
+	if (createHash("sha256").update(bytes).digest("hex") !== fixture.sha256) fail(`reviewed digest does not match: ${name}`);
+}
+
+function packagePaths(root: string): Set<string> {
+	const packed = spawnSync("npm", ["pack", "--json", "--dry-run"], { cwd: root, encoding: "utf8" });
+	if (packed.status !== 0) fail(`unable to inspect npm package: ${packed.stderr || packed.stdout}`);
+	try {
+		const value = JSON.parse(packed.stdout) as Array<{ files?: Array<{ path?: unknown }> }>;
+		return new Set(value[0]?.files?.map((file) => file.path).filter((path): path is string => typeof path === "string") ?? []);
+	} catch { fail("unable to parse npm package inspection"); }
+}
+
+async function assertPackagedReadmeLinks(root: string): Promise<void> {
+	const readmePath = join(root, "README.md");
+	const links = (await readFile(readmePath, "utf8")).matchAll(/!?(?:\[[^\]]*\])\(([^)]+)\)/g);
+	const packaged = packagePaths(root);
+	for (const match of links) {
+		const target = match[1]?.split("#", 1)[0] ?? "";
+		if (!target || /^(?:https?:|mailto:|#)/i.test(target)) continue;
+		const candidate = relative(root, resolve(dirname(readmePath), target));
+		if (candidate === "" || candidate.startsWith("..")) fail(`README has an unsafe relative link: ${target}`);
+		if (!packaged.has(candidate)) fail(`README link is not packaged: ${target}`);
+	}
+}
+
 async function assertReadmeLinks(root: string): Promise<void> {
 	const readme = await readFile(join(root, "README.md"), "utf8");
 	for (const guide of guidePaths.slice(1)) {
@@ -115,9 +288,11 @@ async function assertReadmeLinks(root: string): Promise<void> {
 
 export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): Promise<PublicDocsReport> {
 	const root = resolve(options.repositoryRoot ?? repositoryRoot);
+	const pngReviewManifest = options.pngReviewManifest ?? REVIEWED_PNG_FIXTURES;
 	await assertNoUnsafeContent(root);
 	for (const guide of guidePaths) await stat(join(root, guide));
 	await assertReadmeLinks(root);
+	await assertPackagedReadmeLinks(root);
 
 	for (const diagram of diagramNames) {
 		const sourcePath = join(root, "docs", "diagrams", `${diagram}.mmd`);
@@ -125,7 +300,7 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		const source = await readFile(sourcePath, "utf8");
 		const svg = await readFile(svgPath, "utf8");
 		assertAssetSize(svgPath, Buffer.from(svg));
-		if (titleFromMermaid(source, sourcePath) !== titleFromSvg(svg, svgPath)) fail(`diagram titles do not match: ${diagram}`);
+		if (titleFromMermaid(source, sourcePath) !== parseSvgDiagram(svg, svgPath).title) fail(`diagram titles do not match: ${diagram}`);
 	}
 
 	for (const screenshot of screenshotNames) {
@@ -134,6 +309,7 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		assertAssetSize(path, bytes);
 		const { width, height } = pngDimensions(bytes, path);
 		assertDimensions(path, width, height);
+		await assertReviewedPng(root, screenshot, pngReviewManifest[screenshot]);
 	}
 
 	return { guides: guidePaths.length, diagrams: [...diagramNames], screenshots: [...screenshotNames] };

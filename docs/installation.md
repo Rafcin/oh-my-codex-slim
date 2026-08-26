@@ -10,10 +10,21 @@ OMCS has no tmux, OpenCode, LazyCodex, telemetry, provider-SDK, or Codex Router 
 
 ## Register discovery with Codex
 
-The package ships `.agents/plugins/marketplace.json` with marketplace `omcs-local` and plugin `oh-my-codex-slim`. The canonical selector is `oh-my-codex-slim@omcs-local`. Codex CLI is the sole owner of `[marketplaces.omcs-local]` registration:
+The package ships `.agents/plugins/marketplace.json` with marketplace `omcs-local` and plugin `oh-my-codex-slim`. The canonical selector is `oh-my-codex-slim@omcs-local`. Build and install the local package first; this release does not claim npm-registry publication:
 
 ```bash
-codex plugin marketplace add <repo> --json
+git clone https://github.com/Rafcin/oh-my-codex-slim.git
+cd oh-my-codex-slim
+npm ci
+npm run build
+npm pack
+npm install -g ./oh-my-codex-slim-0.1.0.tgz
+```
+
+Codex CLI is the sole owner of `[marketplaces.omcs-local]` registration. Add the exact public repository and ref, then select the plugin:
+
+```bash
+codex plugin marketplace add Rafcin/oh-my-codex-slim --ref main --json
 codex plugin add oh-my-codex-slim@omcs-local --json
 codex plugin list --json
 ```

@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { verifyPublicDocs } from "../verify-doc-assets.js";
+import { parseSvgDiagram, REVIEWED_PNG_FIXTURES, verifyPublicDocs } from "../verify-doc-assets.js";
 
 const repositoryRoot = process.cwd();
 
@@ -42,5 +42,23 @@ describe("public OMCS documentation assets", () => {
 			assert.match(svg, /<svg\b[^>]*>/i);
 			assert.match(svg, /<title>.+<\/title>/i);
 		}
+	});
+
+	it("rejects malformed SVG XML instead of treating tag-shaped text as a diagram", () => {
+		assert.throws(
+			() => parseSvgDiagram('<?xml version="1.0"?><svg viewBox="0 0 480 320"><title>Broken</title><g></svg>', "fixture.svg"),
+			/well-formed XML/i,
+		);
+	});
+
+	it("rejects a PNG when its reviewed digest no longer matches the checked-in bytes", async () => {
+		const name = "omcs-configure-project.png";
+		await assert.rejects(
+			verifyPublicDocs({
+				repositoryRoot,
+				pngReviewManifest: { ...REVIEWED_PNG_FIXTURES, [name]: { ...REVIEWED_PNG_FIXTURES[name], sha256: "0".repeat(64) } },
+			}),
+			/reviewed digest does not match/i,
+		);
 	});
 });

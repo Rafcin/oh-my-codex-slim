@@ -86,8 +86,13 @@ intent → config / route → context / grill → explore / research → design 
 Requires Node.js 22.19 or newer and Codex CLI. OpenCodex is optional—install it separately only when you want external-model routing.
 
 ```bash
-npm install -g oh-my-codex-slim
-codex plugin marketplace add <repo> --json
+git clone https://github.com/Rafcin/oh-my-codex-slim.git
+cd oh-my-codex-slim
+npm ci
+npm run build
+npm pack
+npm install -g ./oh-my-codex-slim-0.1.0.tgz
+codex plugin marketplace add Rafcin/oh-my-codex-slim --ref main --json
 codex plugin add oh-my-codex-slim@omcs-local --json
 omcs setup --dry-run --json
 omcs setup --json

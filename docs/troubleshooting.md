@@ -44,7 +44,7 @@ New OpenCodex-to-Codex-Router cutovers are not supported. Never delete rollback 
 The canonical selector is `oh-my-codex-slim@omcs-local`:
 
 ```bash
-codex plugin marketplace add <repo> --json
+codex plugin marketplace add Rafcin/oh-my-codex-slim --ref main --json
 codex plugin add oh-my-codex-slim@omcs-local --json
 codex plugin list --json
 ```
@@ -68,4 +68,4 @@ OMCS may raise its route when it discovers a broader interface, persistent contr
 
 ## Attribution and support evidence
 
-Include the OMCS version, redacted doctor/status output, and the exact non-secret failing path. The attribution ledger names Yeachan Heo, Alvin, Matt Pocock, Daniel McAteer, `opencodex contributors`/`lidge-jun`, Herrington Darkholme (`HerringtonDarkholme`), behavioral-reference owner `code-yeongyu`, and legacy compatibility authors/owners `codex-router contributors`, `Duola`, and `duolahypercho`. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); do not invent fuller names.
+Include the OMCS version, redacted doctor/status output, and the exact non-secret failing path. The attribution ledger names Yeachan Heo, Alvin, Matt Pocock, Daniel McAteer, YeonGyu-Kim (published package author for the behavioral-only reference; no copyright/licensor is invented), `opencodex contributors`/`lidge-jun`, Herrington Darkholme (`HerringtonDarkholme`), behavioral-reference owner `code-yeongyu`, and legacy compatibility authors/owners `codex-router contributors`, `Duola`, and `duolahypercho`. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); do not invent fuller names.
