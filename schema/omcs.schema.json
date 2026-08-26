@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/Rafcin/oh-my-codex-slim/main/schema/omcs.schema.json",
+  "title": "OMCS configuration",
+  "description": "Version-one OMCS policy configuration. Credentials, provider settings, model-account choices, tokens, and command paths are not valid configuration fields.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": {
+      "description": "The OMCS configuration schema version.",
+      "const": 1
+    },
+    "profile": {
+      "description": "Execution profile. Model or provider selections are not configuration fields.",
+      "enum": ["auto", "fast", "thorough", "council"]
+    },
+    "approvals": {
+      "description": "When OMCS asks for approval of a material action.",
+      "enum": ["material", "always", "never"]
+    },
+    "antiSlop": {
+      "description": "Whether OMCS runs its anti-slop quality gate.",
+      "type": "boolean"
+    },
+    "visibleProgress": {
+      "description": "Whether OMCS reports visible progress during orchestration.",
+      "type": "boolean"
+    }
+  }
+}
