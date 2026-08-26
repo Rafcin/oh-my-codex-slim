@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, link, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { chmod, link, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -88,6 +88,87 @@ describe("ownership-safe OMCS configuration writer", () => {
 		} finally {
 			__setWriteOmcsConfigHooksForTest();
 			await chmod(join(root, "nested"), 0o755).catch(() => undefined);
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not clobber a user file that appears before a create commit", async () => {
+		const { root, path } = await fixture();
+		try {
+			const userBytes = Buffer.from("user appeared\n");
+			__setWriteOmcsConfigHooksForTest({ beforeCommit: async () => { await writeFile(path, userBytes); } });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false }), /appeared|exists|commit/i);
+			assert.deepEqual(await readFile(path), userBytes);
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("quarantines and restores a raced update without replacing the new user bytes", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			await writeFile(path, '{"version":1,"profile":"fast"}\n');
+			const userBytes = Buffer.from("user replacement\n");
+			__setWriteOmcsConfigHooksForTest({ beforeCommit: async () => { await writeFile(path, userBytes); } });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /changed|commit/i);
+			assert.deepEqual(await readFile(path), userBytes);
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("detects a swapped containing directory before staging and never writes through it", async () => {
+		const { root, path } = await fixture();
+		try {
+			const nested = join(root, "nested");
+			const outside = join(root, "outside");
+			await mkdir(nested);
+			await mkdir(outside);
+			__setWriteOmcsConfigHooksForTest({ beforeStage: async () => {
+				await rename(nested, join(root, "moved-nested"));
+				await symlink(outside, nested);
+			} });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false }), /directory|symlink|unsafe/i);
+			await assert.rejects(lstat(join(outside, "omcs.config.json")), { code: "ENOENT" });
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("sets mode 0644 even when the process umask is 077", async () => {
+		const { root, path } = await fixture();
+		const originalUmask = process.umask(0o077);
+		try {
+			await writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false });
+			assert.equal((await lstat(path)).mode & 0o777, 0o644);
+		} finally {
+			process.umask(originalUmask);
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("preserves concurrent content and recovery bytes when rollback cannot restore", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			const before = Buffer.from('{"version":1,"profile":"fast"}\n');
+			await writeFile(path, before);
+			const concurrent = Buffer.from("concurrent user bytes\n");
+			__setWriteOmcsConfigHooksForTest({
+				afterCommit: async () => { throw new Error("injected commit failure"); },
+				beforeRestore: async () => { await writeFile(path, concurrent); },
+			});
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /rollback|restore|injected/i);
+			assert.deepEqual(await readFile(path), concurrent);
+			const entries = await readdir(join(root, "nested"));
+			assert.deepEqual(entries.filter((entry) => entry.endsWith(".tmp")), []);
+			assert.ok(entries.some((entry) => entry.endsWith(".quarantine")), "prior bytes must remain recoverable");
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
 			await rm(root, { recursive: true, force: true });
 		}
 	});

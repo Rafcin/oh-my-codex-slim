@@ -136,8 +136,8 @@ async function lstatDirectory(path: string): Promise<Awaited<ReturnType<typeof l
 	}
 }
 
-/** Finds the project policy at the closest Git root without crossing the cwd filesystem. */
-export async function findProjectConfig(cwd: string): Promise<string | null> {
+/** Finds the closest Git root from an existing directory without crossing its device boundary. */
+export async function findProjectRoot(cwd: string): Promise<string | null> {
 	let current = resolve(cwd);
 	const startingDirectory = await lstatDirectory(current);
 	if (!startingDirectory) return null;
@@ -153,22 +153,26 @@ export async function findProjectConfig(cwd: string): Promise<string | null> {
 			}
 			throw error;
 		});
-		if (gitMarker && !gitMarker.isSymbolicLink() && (gitMarker.isDirectory() || gitMarker.isFile())) {
-			const configPath = join(current, "omcs.config.json");
-			try {
-				await lstat(configPath);
-				return configPath;
-			} catch (error) {
-				if (typeof error === "object" && error !== null && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") {
-					return null;
-				}
-				throw error;
-			}
-		}
+		if (gitMarker?.isSymbolicLink()) throw new Error(`OMCS refuses symlinked project discovery path: ${join(current, ".git")}`);
+		if (gitMarker && (gitMarker.isDirectory() || gitMarker.isFile())) return current;
 
 		const parent = dirname(current);
 		if (parent === current) return null;
 		current = parent;
+	}
+}
+
+/** Finds the project policy at the closest shared Git root without crossing the cwd filesystem. */
+export async function findProjectConfig(cwd: string): Promise<string | null> {
+	const root = await findProjectRoot(cwd);
+	if (!root) return null;
+	const configPath = join(root, "omcs.config.json");
+	try {
+		await lstat(configPath);
+		return configPath;
+	} catch (error) {
+		if (typeof error === "object" && error !== null && "code" in error && (error as NodeJS.ErrnoException).code === "ENOENT") return null;
+		throw error;
 	}
 }
 

@@ -1,9 +1,9 @@
-import { lstat } from "node:fs/promises";
-import { dirname, join, resolve } from "node:path";
+import { join, resolve } from "node:path";
 
 import {
 	DEFAULT_OMCS_CONFIG,
 	type ExecutionProfile,
+	findProjectRoot,
 	parseOmcsConfig,
 	resolveOmcsConfig,
 } from "../config/omcs-config.js";
@@ -25,28 +25,6 @@ export interface ShowEffectiveConfigOptions {
 	codexHome?: string;
 }
 
-function isMissing(error: unknown): boolean {
-	return typeof error === "object" && error !== null && "code" in error
-		&& (error as NodeJS.ErrnoException).code === "ENOENT";
-}
-
-async function projectRoot(cwd: string): Promise<string> {
-	let current = resolve(cwd);
-	for (;;) {
-		const marker = join(current, ".git");
-		try {
-			const state = await lstat(marker);
-			if (state.isSymbolicLink() || (!state.isDirectory() && !state.isFile())) throw new Error("OMCS refuses unsafe project root");
-			return current;
-		} catch (error) {
-			if (!isMissing(error)) throw error;
-		}
-		const parent = dirname(current);
-		if (parent === current) throw new Error("OMCS project configuration requires a Git root");
-		current = parent;
-	}
-}
-
 function completeConfig(profile: ExecutionProfile) {
 	return { ...DEFAULT_OMCS_CONFIG, profile };
 }
@@ -66,9 +44,14 @@ export async function configureOmcs(options: ConfigureOmcsOptions): Promise<
 		return { scope: "session", action: "session", effectiveProfile: options.profile };
 	}
 	const codexHome = resolveCodexHome({ codexHome: options.codexHome });
-	const path = options.scope === "global"
-		? join(codexHome, "oh-my-codex-slim", "config.json")
-		: join(await projectRoot(cwd), "omcs.config.json");
+	let path: string;
+	if (options.scope === "global") {
+		path = join(codexHome, "oh-my-codex-slim", "config.json");
+	} else {
+		const root = await findProjectRoot(cwd);
+		if (!root) throw new Error("OMCS project configuration requires a Git root");
+		path = join(root, "omcs.config.json");
+	}
 	const report = await writeOmcsConfig({
 		path,
 		config: completeConfig(options.profile),

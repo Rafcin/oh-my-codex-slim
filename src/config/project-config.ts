@@ -1,10 +1,11 @@
-import { constants } from "node:fs";
-import { lstat, mkdir, open, rename, unlink } from "node:fs/promises";
-import { dirname, parse, relative, resolve, sep } from "node:path";
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
+import { link, lstat, mkdir, open, rename, rm, type FileHandle } from "node:fs/promises";
+import { basename, dirname, join, parse, relative, resolve, sep } from "node:path";
 
 import { type OmcsConfig, parseOmcsConfig } from "./omcs-config.js";
-import { readBoundedRegularFile } from "./safe-reader.js";
+
+const MAX_CONFIG_BYTES = 64 * 1024;
 
 export interface WriteOmcsConfigOptions {
 	path: string;
@@ -20,12 +21,34 @@ export interface WriteOmcsConfigReport {
 }
 
 interface WriteHooks {
+	beforeStage?: () => Promise<void>;
+	beforeCommit?: () => Promise<void>;
 	afterCommit?: () => Promise<void>;
+	beforeRestore?: () => Promise<void>;
+}
+
+interface FileSnapshot {
+	bytes: Buffer;
+	dev: number;
+	ino: number;
+}
+
+interface DirectoryGuard {
+	path: string;
+	handle: FileHandle;
+	dev: number;
+	ino: number;
+}
+
+interface StagedFile {
+	path: string;
+	dev: number;
+	ino: number;
 }
 
 let testHooks: WriteHooks | undefined;
 
-/** Test-only fault injection for proving post-rename rollback. */
+/** Test-only fault injection for commit races and rollback recovery. */
 export function __setWriteOmcsConfigHooksForTest(hooks?: WriteHooks): void {
 	testHooks = hooks;
 }
@@ -37,6 +60,10 @@ function isMissing(error: unknown): boolean {
 
 function refuses(message: string): Error {
 	return new Error(`OMCS refuses unsafe configuration write: ${message}`);
+}
+
+function sameIdentity(left: { dev: number; ino: number }, right: { dev: number; ino: number }): boolean {
+	return left.dev === right.dev && left.ino === right.ino;
 }
 
 /** Renders the stable public version-one configuration schema without hidden metadata. */
@@ -55,8 +82,7 @@ async function ensureSafeParent(path: string, create: boolean): Promise<string> 
 		current = resolve(current, component);
 		try {
 			const state = await lstat(current);
-			// macOS exposes its system temporary directory through /var -> /private/var.
-			// It is a root-level platform alias, not a caller-controlled parent.
+			// macOS exposes its temporary tree via root-owned /var -> /private/var.
 			if (state.isSymbolicLink() && (current === "/var" || current === "/tmp")) continue;
 			if (state.isSymbolicLink()) throw refuses(`symlinked ancestor: ${current}`);
 			if (!state.isDirectory()) throw refuses(`non-directory ancestor: ${current}`);
@@ -71,91 +97,211 @@ async function ensureSafeParent(path: string, create: boolean): Promise<string> 
 	return parent;
 }
 
-async function writeStage(directory: string, bytes: Buffer): Promise<string> {
-	const stage = resolve(directory, `.omcs-config-${process.pid}-${randomUUID()}.tmp`);
-	let handle;
+async function openDirectoryGuard(directory: string): Promise<DirectoryGuard> {
+	const handle = await open(directory, constants.O_RDONLY | (constants.O_DIRECTORY ?? 0) | (constants.O_NOFOLLOW ?? 0));
 	try {
-		handle = await open(stage, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0), 0o644);
-		await handle.writeFile(bytes);
-		await handle.sync();
-		return stage;
+		const descriptor = await handle.stat();
+		const named = await lstat(directory);
+		if (!descriptor.isDirectory() || named.isSymbolicLink() || !named.isDirectory() || !sameIdentity(descriptor, named)) {
+			throw refuses(`containing directory changed: ${directory}`);
+		}
+		return { path: directory, handle, dev: descriptor.dev, ino: descriptor.ino };
 	} catch (error) {
-		await unlink(stage).catch(() => undefined);
+		await handle.close();
+		throw error;
+	}
+}
+
+async function verifyDirectory(guard: DirectoryGuard): Promise<void> {
+	const descriptor = await guard.handle.stat();
+	const named = await lstat(guard.path);
+	if (!descriptor.isDirectory() || named.isSymbolicLink() || !named.isDirectory()
+		|| !sameIdentity(descriptor, guard) || !sameIdentity(named, guard)) {
+		throw refuses(`containing directory changed: ${guard.path}`);
+	}
+}
+
+async function closeDirectoryGuard(guard: DirectoryGuard | undefined): Promise<void> {
+	await guard?.handle.close();
+}
+
+async function snapshotFile(path: string): Promise<FileSnapshot | null> {
+	let handle: FileHandle | undefined;
+	try {
+		const namedBefore = await lstat(path);
+		if (namedBefore.isSymbolicLink() || !namedBefore.isFile() || namedBefore.nlink !== 1) throw refuses(`unsafe existing file: ${path}`);
+		handle = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+		const before = await handle.stat();
+		if (!before.isFile() || before.nlink !== 1 || before.size < 0 || before.size > MAX_CONFIG_BYTES || !sameIdentity(before, namedBefore)) {
+			throw refuses(`unsafe existing file: ${path}`);
+		}
+		const bytes = await handle.readFile();
+		const after = await handle.stat();
+		const namedAfter = await lstat(path);
+		if (bytes.byteLength > MAX_CONFIG_BYTES || !sameIdentity(before, after) || !sameIdentity(after, namedAfter)
+			|| namedAfter.isSymbolicLink() || !namedAfter.isFile() || namedAfter.nlink !== 1) {
+			throw refuses(`existing file changed while reading: ${path}`);
+		}
+		return { bytes, dev: after.dev, ino: after.ino };
+	} catch (error) {
+		if (!handle && isMissing(error)) return null;
 		throw error;
 	} finally {
 		await handle?.close();
 	}
 }
 
-async function syncDirectory(directory: string): Promise<void> {
-	const handle = await open(directory, constants.O_RDONLY | (constants.O_DIRECTORY ?? 0));
+async function stageFile(guard: DirectoryGuard, target: string, bytes: Buffer): Promise<StagedFile> {
+	await verifyDirectory(guard);
+	const path = join(guard.path, `.${basename(target)}.omcs-${randomUUID()}.tmp`);
+	let handle: FileHandle | undefined;
 	try {
+		handle = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0), 0o644);
+		await handle.chmod(0o644);
+		await handle.writeFile(bytes);
+		await verifyDirectory(guard);
 		await handle.sync();
-	} finally {
+		const state = await handle.stat();
+		if (!state.isFile() || state.nlink !== 1) throw refuses(`unsafe staged file: ${path}`);
 		await handle.close();
+		handle = undefined;
+		await verifyDirectory(guard);
+		return { path, dev: state.dev, ino: state.ino };
+	} catch (error) {
+		await handle?.close().catch(() => undefined);
+		await rm(path, { force: true }).catch(() => undefined);
+		throw error;
 	}
 }
 
-async function readExisting(path: string): Promise<Buffer | null> {
+async function syncDirectory(guard: DirectoryGuard): Promise<void> {
+	await verifyDirectory(guard);
+	await guard.handle.sync();
+	await verifyDirectory(guard);
+}
+
+async function moveToQuarantine(guard: DirectoryGuard, path: string): Promise<string> {
+	const quarantine = join(guard.path, `.${basename(path)}.omcs-${randomUUID()}.quarantine`);
+	await verifyDirectory(guard);
+	await rename(path, quarantine);
+	await verifyDirectory(guard);
+	await syncDirectory(guard);
+	return quarantine;
+}
+
+async function removePath(guard: DirectoryGuard, path: string): Promise<void> {
+	await verifyDirectory(guard);
+	await rm(path, { force: true });
+	await verifyDirectory(guard);
+}
+
+async function restorePriorNoClobber(guard: DirectoryGuard, target: string, quarantine: string): Promise<void> {
+	await verifyDirectory(guard);
+	await link(quarantine, target);
+	await verifyDirectory(guard);
+	await removePath(guard, quarantine);
+	await syncDirectory(guard);
+}
+
+async function commitStagedNoClobber(guard: DirectoryGuard, stage: StagedFile, target: string, desired: Buffer): Promise<void> {
+	await verifyDirectory(guard);
+	await link(stage.path, target);
+	await verifyDirectory(guard);
+	await removePath(guard, stage.path);
+	const committed = await snapshotFile(target);
+	if (!committed || !committed.bytes.equals(desired) || !sameIdentity(committed, stage)) throw refuses("committed configuration changed");
+	await syncDirectory(guard);
+}
+
+async function rollbackCommitted(
+	guard: DirectoryGuard,
+	target: string,
+	desired: Buffer,
+	priorQuarantine: string | undefined,
+): Promise<void> {
+	await verifyDirectory(guard);
+	const current = await snapshotFile(target);
+	if (!current || !current.bytes.equals(desired)) throw new Error("OMCS refuses rollback because committed configuration changed");
+	const committedQuarantine = await moveToQuarantine(guard, target);
 	try {
-		const state = await lstat(path);
-		if (state.isSymbolicLink() || !state.isFile() || state.nlink !== 1) throw refuses(`unsafe existing file: ${path}`);
-		const bytes = await readBoundedRegularFile(path, { label: "configuration" });
-		return bytes;
+		const moved = await snapshotFile(committedQuarantine);
+		if (!moved || !moved.bytes.equals(desired) || !sameIdentity(moved, current)) throw new Error("OMCS committed configuration changed during rollback");
+		await testHooks?.beforeRestore?.();
+		if (priorQuarantine) await restorePriorNoClobber(guard, target, priorQuarantine);
+		await removePath(guard, committedQuarantine);
+		await syncDirectory(guard);
 	} catch (error) {
-		if (isMissing(error)) return null;
-		throw error;
+		// Keep both quarantine paths as recovery evidence; never overwrite a new file.
+		throw new Error("OMCS configuration rollback could not safely restore prior bytes", { cause: error });
 	}
 }
 
 /**
  * Creates a new config or explicitly replaces a parseable prior OMCS config.
- * The writer never claims files via a project manifest: a different existing
- * file is user-owned until the caller deliberately supplies --update.
+ * A quarantine plus hard-link CAS avoids clobbering files that appear or change
+ * after validation. No ownership manifest is written into the project.
  */
 export async function writeOmcsConfig(options: WriteOmcsConfigOptions): Promise<WriteOmcsConfigReport> {
 	const path = resolve(options.path);
 	const bytes = renderOmcsConfig(options.config);
 	const directory = await ensureSafeParent(path, !options.dryRun);
-	const existing = await readExisting(path);
+	const existing = await snapshotFile(path);
 
-	if (existing && existing.equals(bytes)) {
-		return { action: "unchanged", path, bytes: bytes.byteLength };
-	}
-	if (existing && !options.update) {
-		throw new Error("OMCS refuses to replace an existing user-owned configuration without --update");
-	}
-	if (existing && options.update) parseOmcsConfig(existing, "existing");
+	if (existing && existing.bytes.equals(bytes)) return { action: "unchanged", path, bytes: bytes.byteLength };
+	if (existing && !options.update) throw new Error("OMCS refuses to replace an existing user-owned configuration without --update");
+	if (existing) parseOmcsConfig(existing.bytes, "existing");
 
 	const action = existing ? "update" : "create";
 	if (options.dryRun) return { action: `would-${action}` as "would-create" | "would-update", path, bytes: bytes.byteLength };
 
-	let stage: string | undefined;
+	let guard: DirectoryGuard | undefined;
+	let stage: StagedFile | undefined;
+	let priorQuarantine: string | undefined;
 	let committed = false;
 	try {
-		stage = await writeStage(directory, bytes);
-		await rename(stage, path);
+		guard = await openDirectoryGuard(directory);
+		await testHooks?.beforeStage?.();
+		await verifyDirectory(guard);
+		stage = await stageFile(guard, path, bytes);
+		await testHooks?.beforeCommit?.();
+		await verifyDirectory(guard);
+		if (existing) {
+			priorQuarantine = await moveToQuarantine(guard, path);
+			const moved = await snapshotFile(priorQuarantine);
+			if (!moved || !moved.bytes.equals(existing.bytes) || !sameIdentity(moved, existing)) {
+				await restorePriorNoClobber(guard, path, priorQuarantine);
+				priorQuarantine = undefined;
+				throw new Error("OMCS configuration changed before commit");
+			}
+		} else if (await snapshotFile(path)) {
+			throw new Error("OMCS configuration appeared before commit");
+		}
+		await commitStagedNoClobber(guard, stage, path, bytes);
 		stage = undefined;
 		committed = true;
 		await testHooks?.afterCommit?.();
-		await syncDirectory(directory);
+		if (priorQuarantine) {
+			await removePath(guard, priorQuarantine);
+			priorQuarantine = undefined;
+			await syncDirectory(guard);
+		}
 		return { action, path, bytes: bytes.byteLength };
 	} catch (error) {
-		if (committed) {
-			try {
-				if (existing) {
-					const restore = await writeStage(directory, existing);
-					await rename(restore, path);
-				} else {
-					await unlink(path);
-				}
-				await syncDirectory(directory);
-			} catch (restoreError) {
-				throw new Error("OMCS configuration commit failed and exact rollback could not be completed", { cause: restoreError });
+		try {
+			if (stage && guard) await removePath(guard, stage.path);
+			if (committed && guard) {
+				await rollbackCommitted(guard, path, bytes, priorQuarantine);
+				priorQuarantine = undefined;
+			} else if (priorQuarantine && guard) {
+				await restorePriorNoClobber(guard, path, priorQuarantine);
+				priorQuarantine = undefined;
 			}
+		} catch (rollbackError) {
+			throw new AggregateError([error, rollbackError], "OMCS configuration commit and rollback failed");
 		}
 		throw error;
 	} finally {
-		if (stage) await unlink(stage).catch(() => undefined);
+		if (stage && guard) await removePath(guard, stage.path).catch(() => undefined);
+		await closeDirectoryGuard(guard);
 	}
 }

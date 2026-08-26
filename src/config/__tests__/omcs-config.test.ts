@@ -6,6 +6,7 @@ import { describe, it } from "node:test";
 
 import {
 	DEFAULT_OMCS_CONFIG,
+	findProjectRoot,
 	findProjectConfig,
 	parseOmcsConfig,
 	resolveOmcsConfig,
@@ -123,6 +124,18 @@ describe("OMCS configuration", () => {
 			assert.equal(await findProjectConfig(cwd), projectPath);
 			await rm(projectPath);
 			assert.equal(await findProjectConfig(cwd), null);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("shares the existing-start-directory and nearest-Git-root discovery contract", async () => {
+		const { root, cwd } = await fixture();
+		try {
+			assert.equal(await findProjectRoot(cwd), join(root, "repository"));
+			assert.equal(await findProjectRoot(join(root, "missing-directory")), null);
+			await symlink(join(root, "repository"), join(root, "linked-repository"));
+			assert.rejects(findProjectRoot(join(root, "linked-repository")), /symlink/i);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
