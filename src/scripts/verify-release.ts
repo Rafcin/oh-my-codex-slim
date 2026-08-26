@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const APPROVED_PACKED_MANIFEST = [
@@ -30,10 +30,10 @@ export function assertApprovedPackedManifest(paths: readonly string[]): void {
 	for (const path of paths) if (!approved.has(path as typeof APPROVED_PACKED_MANIFEST[number])) throw new Error(`npm artifact contains unexpected ${path}`);
 }
 
-function allowed(file: string, args: string[]): boolean {
+function allowed(file: string, args: string[], artifactDirectory: string): boolean {
 	if (file === "npm") return (args[0] === "run" && ["build", "lint", "test", "verify:skills", "verify:docs", "verify:secrets"].includes(args[1] ?? ""))
 		|| (args.length === 1 && args[0] === "test")
-		|| (args[0] === "pack" && args.join(" ") === "pack --dry-run --json");
+		|| (args.length === 4 && args[0] === "pack" && args[1] === "--json" && args[2] === "--pack-destination" && args[3] === artifactDirectory);
 	if (file !== process.execPath) return false;
 	if (args[0] === "--test") return args.slice(1).every((arg) => /^dist\/[a-z0-9_./-]+\.test\.js$/i.test(arg));
 	return args.length === 2
@@ -44,16 +44,20 @@ function allowed(file: string, args: string[]): boolean {
 async function main(): Promise<void> {
 	const releaseEnvironmentModule = "./release-environment.ts";
 	const { buildReleaseEnvironment } = await import(releaseEnvironmentModule) as typeof import("./release-environment.js");
+	const publicSecretScanModule = "./public-secret-scan.ts";
+	const { scanNpmPackageArtifact } = await import(publicSecretScanModule) as typeof import("./public-secret-scan.js");
 	const root = process.cwd();
 	const isolatedRoot = mkdtempSync(join(tmpdir(), "omcs-release-"));
+	const artifactDirectory = join(isolatedRoot, "artifact");
 	const environment = await buildReleaseEnvironment(process.env, isolatedRoot, process.execPath);
 	for (const path of [environment.HOME, environment.CODEX_HOME, environment.TMPDIR, environment.npm_config_cache, environment.npm_config_prefix]) {
 		if (path) mkdirSync(path, { recursive: true });
 	}
 	writeFileSync(environment.npm_config_userconfig!, "", { mode: 0o600 });
+	mkdirSync(artifactDirectory, { mode: 0o700 });
 
 	function run(file: string, args: string[]): string {
-		if (!allowed(file, args)) throw new Error(`verify:release refused an unapproved command boundary: ${file}`);
+		if (!allowed(file, args, artifactDirectory)) throw new Error(`verify:release refused an unapproved command boundary: ${file}`);
 		process.stdout.write(`release gate: ${file} ${args.join(" ")}\n`);
 		return execFileSync(file, args, { cwd: root, env: environment, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] });
 	}
@@ -70,8 +74,20 @@ async function main(): Promise<void> {
 		run("npm", ["run", "verify:docs"]);
 		run("npm", ["run", "verify:secrets"]);
 		run(process.execPath, ["dist/scripts/validate-plugin.js", "plugins/oh-my-codex-slim"]);
-		const packed = JSON.parse(run("npm", ["pack", "--dry-run", "--json"])) as Array<{ files: Array<{ path: string }> }>;
-		assertApprovedPackedManifest(packed[0]?.files.map((file) => file.path) ?? []);
+		const packed = JSON.parse(run("npm", ["pack", "--json", "--pack-destination", artifactDirectory])) as Array<{ filename?: unknown }>;
+		const filename = packed[0]?.filename;
+		if (typeof filename !== "string" || basename(filename) !== filename || !/^[A-Za-z0-9._-]+\.tgz$/.test(filename)) {
+			throw new Error("verify:release received an unsafe npm artifact filename");
+		}
+		const artifactPath = join(artifactDirectory, filename);
+		chmodSync(artifactPath, 0o600);
+		const artifact = await scanNpmPackageArtifact(artifactPath);
+		assertApprovedPackedManifest(artifact.paths);
+		if (artifact.findings.length > 0) {
+			for (const finding of artifact.findings) process.stderr.write(`release artifact: ${finding.path} [${finding.rule}]\n`);
+			throw new Error("verify:release refused an npm artifact with public-secret findings");
+		}
+		process.stdout.write(`release gate: artifact sha256 ${artifact.sha256}\n`);
 		process.stdout.write("verify:release passed every offline OMCS gate; fresh App/CLI discovery and any billed smoke remain separate.\n");
 	} finally {
 		rmSync(isolatedRoot, { recursive: true, force: true });

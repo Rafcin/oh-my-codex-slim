@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { constants, realpathSync } from "node:fs";
 import { lstat, open } from "node:fs/promises";
-import { relative, resolve } from "node:path";
+import { posix, relative, resolve } from "node:path";
+import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
+import { createGunzip } from "node:zlib";
+import * as tar from "tar-stream";
 
 const maxScanBytes = 1_000_000;
+const maxArtifactBytes = 64 * 1024 * 1024;
+const maxArtifactEntries = 1_000;
+const maxArtifactContentBytes = 64 * 1024 * 1024;
 const privateStatePath = /^(?:\.superpowers\/sdd\/|\.omcs\/|\.gjc\/)/;
 
 export interface PublicSecretFinding {
@@ -17,6 +25,12 @@ export interface ScanPublicFilesOptions {
 	environment?: NodeJS.ProcessEnv;
 	/** Test-only deterministic seam for proving the descriptor identity check. */
 	beforeOpen?: (trackedPath: string) => Promise<void>;
+}
+
+export interface NpmPackageArtifactScan {
+	sha256: string;
+	paths: string[];
+	findings: PublicSecretFinding[];
 }
 
 interface Pattern {
@@ -138,33 +152,118 @@ function dotenvBasename(path: string): boolean {
 	return path.slice(path.lastIndexOf("/") + 1).startsWith(".env");
 }
 
+/** Scans one public entry's exact bytes and never returns matched content. */
+export function scanPublicBytes(path: string, bytes: Buffer): PublicSecretFinding[] {
+	if (bytes.byteLength > maxScanBytes) throw new Error(`public-secret-scan: refuses oversized public entry: ${path}`);
+	const findings: PublicSecretFinding[] = [];
+	const content = printableStrings(bytes);
+	if (privateStatePath.test(path)) return [{ path, rule: "private-run-state" }];
+	if (dotenvBasename(path)) return [{ path, rule: "dotenv-file" }];
+	for (const { rule, pattern, value } of patterns) {
+		const matcher = new RegExp(pattern.source, pattern.flags);
+		let found = false;
+		for (const match of content.matchAll(matcher)) {
+			const matchedValue = value(match);
+			const safe = rule === "local-home-path" ? documentedSyntheticLocalPath(matchedValue) : documentedPlaceholder(matchedValue);
+			if (!safe) found = true;
+		}
+		if (found) findings.push({ path, rule });
+	}
+	return findings.sort((left, right) => left.rule.localeCompare(right.rule));
+}
+
 /** Scans only canonical Git-tracked, bounded regular files and never returns matched content. */
 export async function scanPublicFiles(root = process.cwd(), options: ScanPublicFilesOptions = {}): Promise<PublicSecretFinding[]> {
 	const environment = sanitizedGitEnvironment(options.environment ?? process.env);
 	const repositoryRoot = resolveCanonicalRepository(root, environment);
 	const findings: PublicSecretFinding[] = [];
 	for (const path of trackedFiles(repositoryRoot, environment)) {
-		const content = printableStrings(await readTrackedFile(repositoryRoot, path, options.beforeOpen));
-		if (privateStatePath.test(path)) {
-			findings.push({ path, rule: "private-run-state" });
-			continue;
-		}
-		if (dotenvBasename(path)) {
-			findings.push({ path, rule: "dotenv-file" });
-			continue;
-		}
-		for (const { rule, pattern, value } of patterns) {
-			const matcher = new RegExp(pattern.source, pattern.flags);
-			let found = false;
-			for (const match of content.matchAll(matcher)) {
-				const matchedValue = value(match);
-				const safe = rule === "local-home-path" ? documentedSyntheticLocalPath(matchedValue) : documentedPlaceholder(matchedValue);
-				if (!safe) found = true;
-			}
-			if (found) findings.push({ path, rule });
-		}
+		findings.push(...scanPublicBytes(path, await readTrackedFile(repositoryRoot, path, options.beforeOpen)));
 	}
 	return findings.sort((left, right) => left.path.localeCompare(right.path) || left.rule.localeCompare(right.rule));
+}
+
+function safeArtifactEntryPath(name: string): string {
+	if (!name.startsWith("package/") || name.includes("\\") || name.includes("\0")) {
+		throw new Error("public-secret-scan: npm artifact contains an unsafe entry path");
+	}
+	const path = name.slice("package/".length);
+	if (!path || posix.isAbsolute(path) || posix.normalize(path) !== path || path.split("/").some((segment) => !segment || segment === "." || segment === "..")) {
+		throw new Error("public-secret-scan: npm artifact contains an unsafe entry path");
+	}
+	return path;
+}
+
+async function readPrivateArtifact(path: string): Promise<Buffer> {
+	const namedBefore = await lstat(path);
+	if (namedBefore.isSymbolicLink() || !namedBefore.isFile() || namedBefore.nlink !== 1 || (namedBefore.mode & 0o077) !== 0
+		|| namedBefore.size <= 0 || namedBefore.size > maxArtifactBytes) {
+		throw new Error("public-secret-scan: refuses unsafe npm artifact");
+	}
+	const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+	try {
+		const opened = await file.stat();
+		assertStableIdentity(namedBefore, opened, "npm artifact");
+		const bytes = await readBoundedBytes(file, namedBefore.size, "npm artifact");
+		const after = await file.stat();
+		const namedAfter = await lstat(path);
+		assertStableIdentity(namedBefore, after, "npm artifact");
+		assertStableIdentity(namedBefore, namedAfter, "npm artifact");
+		return bytes;
+	} finally {
+		await file.close();
+	}
+}
+
+/** Hashes and scans exact regular-file entries from one private npm tarball without extracting it. */
+export async function scanNpmPackageArtifact(path: string): Promise<NpmPackageArtifactScan> {
+	const bytes = await readPrivateArtifact(resolve(path));
+	const paths: string[] = [];
+	const findings: PublicSecretFinding[] = [];
+	const seen = new Set<string>();
+	let totalContentBytes = 0;
+	const extractor = tar.extract();
+	let entryFailure: unknown;
+	extractor.on("entry", (header, stream, next) => {
+		void (async () => {
+			const publicPath = safeArtifactEntryPath(header.name);
+			const declaredSize = header.size;
+			if (header.type !== "file") throw new Error(`public-secret-scan: refuses non-file npm artifact entry: ${publicPath}`);
+			if (seen.has(publicPath)) throw new Error(`public-secret-scan: refuses duplicate npm artifact entry: ${publicPath}`);
+			if (seen.size >= maxArtifactEntries || typeof declaredSize !== "number" || declaredSize < 0 || declaredSize > maxScanBytes) {
+				throw new Error(`public-secret-scan: refuses oversized npm artifact entry: ${publicPath}`);
+			}
+			totalContentBytes += declaredSize;
+			if (totalContentBytes > maxArtifactContentBytes) throw new Error("public-secret-scan: refuses oversized npm artifact content");
+			const chunks: Buffer[] = [];
+			let received = 0;
+			for await (const chunk of stream) {
+				const part = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+				received += part.byteLength;
+				if (received > declaredSize || received > maxScanBytes) throw new Error(`public-secret-scan: refuses oversized npm artifact entry: ${publicPath}`);
+				chunks.push(part);
+			}
+			if (received !== declaredSize) throw new Error(`public-secret-scan: npm artifact entry size changed: ${publicPath}`);
+			seen.add(publicPath);
+			paths.push(publicPath);
+			findings.push(...scanPublicBytes(publicPath, Buffer.concat(chunks, received)));
+			next();
+		})().catch((error: unknown) => {
+			entryFailure = error;
+			stream.resume();
+			extractor.destroy(error instanceof Error ? error : new Error("public-secret-scan: npm artifact scan failed"));
+		});
+	});
+	try {
+		await pipeline(Readable.from([bytes]), createGunzip(), extractor);
+	} catch (error) {
+		throw entryFailure ?? error;
+	}
+	return {
+		sha256: createHash("sha256").update(bytes).digest("hex"),
+		paths: paths.sort(),
+		findings: findings.sort((left, right) => left.path.localeCompare(right.path) || left.rule.localeCompare(right.rule)),
+	};
 }
 
 async function main(): Promise<void> {

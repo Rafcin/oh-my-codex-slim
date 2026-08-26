@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { lstat, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { scanPublicFiles } from "../public-secret-scan.js";
+import { gzipSync } from "node:zlib";
+import * as tar from "tar-stream";
+import * as publicSecretScanner from "../public-secret-scan.js";
+
+const { scanPublicFiles } = publicSecretScanner;
 
 async function fixture(): Promise<string> {
 	const root = await mkdtemp(join(tmpdir(), "omcs-public-secret-scan-"));
@@ -14,6 +19,23 @@ async function fixture(): Promise<string> {
 
 function stage(root: string): void {
 	execFileSync("git", ["add", "--all"], { cwd: root });
+}
+
+async function packageTarball(entries: readonly { path: string; bytes: Buffer; type?: "file" | "symlink" }[]): Promise<Buffer> {
+	const pack = tar.pack();
+	const chunks: Buffer[] = [];
+	pack.on("data", (chunk: Buffer) => chunks.push(chunk));
+	const completed = new Promise<void>((resolve, reject) => {
+		pack.on("end", resolve);
+		pack.on("error", reject);
+	});
+	for (const entry of entries) {
+		if (entry.type === "symlink") pack.entry({ name: `package/${entry.path}`, type: "symlink", linkname: "package/safe.txt" });
+		else pack.entry({ name: `package/${entry.path}`, size: entry.bytes.byteLength }, entry.bytes);
+	}
+	pack.finalize();
+	await completed;
+	return gzipSync(Buffer.concat(chunks));
 }
 
 describe("public secret scan", () => {
@@ -210,6 +232,29 @@ describe("public secret scan", () => {
 			await symlink("target.txt", join(root, ".env.local"));
 			stage(root);
 			await assert.rejects(() => scanPublicFiles(root), /refuses tracked symbolic link: \.env\.local/);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("scans the exact regular-file entries and hashes the exact npm tarball bytes", async () => {
+		const root = await mkdtemp(join(tmpdir(), "omcs-package-secret-scan-"));
+		try {
+			const tarball = await packageTarball([
+				{ path: "README.md", bytes: Buffer.from("safe\n") },
+				{ path: "dist/generated.js", bytes: Buffer.from(["export const key = \"", "AK", "IA", "H".repeat(16), "\";\n"].join("")) },
+			]);
+			const tarballPath = join(root, "oh-my-codex-slim-0.1.0.tgz");
+			await writeFile(tarballPath, tarball, { mode: 0o600 });
+			const scan = (publicSecretScanner as { scanNpmPackageArtifact?: (path: string) => Promise<unknown> }).scanNpmPackageArtifact;
+			assert.equal(typeof scan, "function");
+			const result = await scan!(tarballPath) as { sha256: string; paths: string[]; findings: unknown[] };
+			assert.deepEqual(result, {
+				sha256: createHash("sha256").update(tarball).digest("hex"),
+				paths: ["README.md", "dist/generated.js"],
+				findings: [{ path: "dist/generated.js", rule: "aws-access-key" }],
+			});
+			assert.deepEqual(await readdir(root), ["oh-my-codex-slim-0.1.0.tgz"]);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

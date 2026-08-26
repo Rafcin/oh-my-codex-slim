@@ -27,6 +27,8 @@ describe("release verification isolation", () => {
 		assert.match(source, /buildReleaseEnvironment\(process\.env, isolatedRoot, process\.execPath\)/);
 		assert.match(source, /dist\/scripts\/validate-plugin\.js/);
 		assert.match(source, /dist\/config\/safe-reader\.js/);
+		assert.match(source, /scanNpmPackageArtifact\(artifactPath\)/);
+		assert.doesNotMatch(source, /pack[^\n]+--dry-run/);
 	});
 
 	it("packs the public OMCS runtime, policy, provenance, guides, diagrams, and redacted screenshots", () => {
