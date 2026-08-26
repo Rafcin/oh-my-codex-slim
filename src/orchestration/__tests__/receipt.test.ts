@@ -45,6 +45,20 @@ describe("private OMCS run receipts", () => {
 		} finally { await rm(root, { recursive: true, force: true }); }
 	});
 
+	it("rejects environment-shaped arguments for every approved tool before creating .omcs", async () => {
+		const root = await fixture();
+		try {
+			const unsafe = [
+				"npm --env-file=.env test", "npm --ENV=production test", "npm dotenv test", "npm test NODE_OPTIONS=--trace-warnings",
+				"node --env-file=.env --test", "node --ENV=production --test", "node process.env", "node $HOME",
+				"git --env=production status", "git environment status", "git status %HOME%", "git status .env",
+				"omcs --env-file=.env status", "omcs --ENV=production status", "omcs dotenv status", "omcs status KEY=value",
+			];
+			for (const command of unsafe) await assert.rejects(writeRunReceipt(root, receipt({ verification: [{ command, outcome: "passed" }] })), /receipt|unsafe|invalid/i, command);
+			await assert.rejects(lstat(join(root, ".omcs")), { code: "ENOENT" });
+		} finally { await rm(root, { recursive: true, force: true }); }
+	});
+
 	it("rejects non-local labels, paths, providers, interpreters, secrets, and shell syntax before any write", async () => {
 		const root = await fixture();
 		try {

@@ -16,6 +16,7 @@ const NAME = /^\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-\d{3}Z-[0-9a-f]{8}-(?:[0-9a-f
 const UUID = /^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/;
 const BAD_KEY = /token|secret|password|credential|authorization|cookie|api[_-]?key|provider|model|endpoint/i;
 const BAD_LABEL = /token|secret|password|credential|authorization|cookie|api[_-]?key|provider|model|endpoint|prompt|response|output|stdout|stderr/i;
+const ENV_ARGUMENT = /env|dotenv|node_options|process\.env|\.env/i;
 const SAFE_ARG = /^(?:--?[A-Za-z][A-Za-z0-9._:/=-]*|[A-Za-z0-9][A-Za-z0-9._:/=-]*)$/;
 const PROVIDERS = ["open" + "ai", "anth" + "ropic", "gemi" + "ni", "cla" + "ude", "az" + "ure", "bed" + "rock", "ver" + "tex", "gr" + "oq", "mistr" + "al", "coh" + "ere", "tog" + "ether", "deep" + "seek", "oll" + "ama", "x" + "ai"];
 const INLINE = new Set(["-c", "-e", "--eval", "--execute", "--input-type"]);
@@ -74,7 +75,7 @@ function command(value: unknown): value is string {
 	if (!TOOLS.has(tokens[0] ?? "")) return false;
 	return tokens.every((token, index) => {
 		const lower = token.toLowerCase();
-		return token.length > 0 && SAFE_ARG.test(token) && !BAD_LABEL.test(lower) && !PROVIDERS.some((provider) => lower.includes(provider))
+		return token.length > 0 && SAFE_ARG.test(token) && !BAD_LABEL.test(lower) && !ENV_ARGUMENT.test(lower) && !PROVIDERS.some((provider) => lower.includes(provider))
 			&& !token.startsWith("/") && !token.startsWith("~") && !token.startsWith("\\") && !token.includes("//") && !token.includes("..")
 			&& !token.includes(":") && !(token.includes("=") && !token.startsWith("--")) && !INLINE.has(lower) && token !== "-"
 			&& (index !== 0 || TOOLS.has(token));
