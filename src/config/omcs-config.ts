@@ -8,32 +8,67 @@ import { readBoundedRegularFile } from "./safe-reader.js";
 const MAX_CONFIG_BYTES = 64 * 1024;
 
 export type ExecutionProfile = "auto" | "fast" | "thorough" | "council";
-export type ApprovalPolicy = "material" | "always" | "never";
+export type ApprovalPolicy = "material-decisions";
+export type AdaptivePolicy = "adaptive";
+export type ReviewPolicy = "risk-gated";
+export type AntiSlopPolicy = "changed-files";
+export type CouncilPolicy = "explicit-only";
 
-export interface OmcsConfig {
-	version: 1;
-	profile?: ExecutionProfile;
-	approvals?: ApprovalPolicy;
-	antiSlop?: boolean;
-	visibleProgress?: boolean;
+export const OMCS_SCHEMA_URL = "https://raw.githubusercontent.com/Rafcin/oh-my-codex-slim/main/schema/omcs.schema.json";
+
+export interface OmcsQualityConfig {
+	clarification?: AdaptivePolicy;
+	design?: AdaptivePolicy;
+	tdd?: AdaptivePolicy;
+	review?: ReviewPolicy;
+	antiSlop?: AntiSlopPolicy;
 }
 
-export const DEFAULT_OMCS_CONFIG: Required<OmcsConfig> = {
+export interface OmcsOrchestrationConfig {
+	maxParallel?: 2;
+	council?: CouncilPolicy;
+}
+
+export interface OmcsConfig {
+	$schema?: typeof OMCS_SCHEMA_URL;
+	version: 1;
+	profile?: ExecutionProfile;
+	approval?: ApprovalPolicy;
+	quality?: OmcsQualityConfig;
+	orchestration?: OmcsOrchestrationConfig;
+}
+
+export interface EffectiveOmcsConfig extends Required<Omit<OmcsConfig, "quality" | "orchestration">> {
+	quality: Required<OmcsQualityConfig>;
+	orchestration: Required<OmcsOrchestrationConfig>;
+}
+
+export const DEFAULT_OMCS_CONFIG: EffectiveOmcsConfig = {
+	$schema: OMCS_SCHEMA_URL,
 	version: 1,
 	profile: "auto",
-	approvals: "material",
-	antiSlop: true,
-	visibleProgress: true,
+	approval: "material-decisions",
+	quality: {
+		clarification: "adaptive",
+		design: "adaptive",
+		tdd: "adaptive",
+		review: "risk-gated",
+		antiSlop: "changed-files",
+	},
+	orchestration: {
+		maxParallel: 2,
+		council: "explicit-only",
+	},
 };
 
 export interface ResolveOmcsConfigInput {
 	cwd: string;
 	codexHome: string;
-	session?: Omit<Partial<OmcsConfig>, "version">;
+	session?: Omit<OmcsConfig, "version" | "$schema">;
 }
 
 export interface ResolvedOmcsConfig {
-	effective: Required<OmcsConfig>;
+	effective: EffectiveOmcsConfig;
 	sources: {
 		defaults: true;
 		global: string | null;
@@ -42,15 +77,29 @@ export interface ResolvedOmcsConfig {
 	};
 }
 
-const omcsConfigSchema = z.object({
-	version: z.literal(1),
-	profile: z.enum(["auto", "fast", "thorough", "council"]).optional(),
-	approvals: z.enum(["material", "always", "never"]).optional(),
-	antiSlop: z.boolean().optional(),
-	visibleProgress: z.boolean().optional(),
+const qualityConfigSchema = z.object({
+	clarification: z.literal("adaptive").optional(),
+	design: z.literal("adaptive").optional(),
+	tdd: z.literal("adaptive").optional(),
+	review: z.literal("risk-gated").optional(),
+	antiSlop: z.literal("changed-files").optional(),
 }).strict();
 
-const sessionConfigSchema = omcsConfigSchema.omit({ version: true });
+const orchestrationConfigSchema = z.object({
+	maxParallel: z.literal(2).optional(),
+	council: z.literal("explicit-only").optional(),
+}).strict();
+
+const omcsConfigSchema = z.object({
+	$schema: z.literal(OMCS_SCHEMA_URL).optional(),
+	version: z.literal(1),
+	profile: z.enum(["auto", "fast", "thorough", "council"]).optional(),
+	approval: z.literal("material-decisions").optional(),
+	quality: qualityConfigSchema.optional(),
+	orchestration: orchestrationConfigSchema.optional(),
+}).strict();
+
+const sessionConfigSchema = omcsConfigSchema.omit({ version: true, $schema: true });
 
 function configurationError(label: string): Error {
 	return new Error(`OMCS ${label} configuration is invalid`);
@@ -130,7 +179,7 @@ async function readConfig(path: string, label: string): Promise<OmcsConfig | nul
 
 /** Resolves safe defaults, global preferences, project policy, then an in-memory session overlay. */
 export async function resolveOmcsConfig(input: ResolveOmcsConfigInput): Promise<ResolvedOmcsConfig> {
-	const globalPath = join(resolve(input.codexHome), "omcs", "config.json");
+	const globalPath = join(resolve(input.codexHome), "oh-my-codex-slim", "config.json");
 	const projectPath = await findProjectConfig(input.cwd);
 	const [global, project] = await Promise.all([
 		readConfig(globalPath, "global"),
@@ -139,7 +188,24 @@ export async function resolveOmcsConfig(input: ResolveOmcsConfigInput): Promise<
 	const session = input.session === undefined ? undefined : sessionConfigSchema.parse(input.session);
 
 	return {
-		effective: { ...DEFAULT_OMCS_CONFIG, ...global, ...project, ...session },
+		effective: {
+			...DEFAULT_OMCS_CONFIG,
+			...global,
+			...project,
+			...session,
+			quality: {
+				...DEFAULT_OMCS_CONFIG.quality,
+				...global?.quality,
+				...project?.quality,
+				...session?.quality,
+			},
+			orchestration: {
+				...DEFAULT_OMCS_CONFIG.orchestration,
+				...global?.orchestration,
+				...project?.orchestration,
+				...session?.orchestration,
+			},
+		},
 		sources: {
 			defaults: true,
 			global: global ? globalPath : null,

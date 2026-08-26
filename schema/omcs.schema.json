@@ -15,17 +15,34 @@
       "description": "Execution profile. Model or provider selections are not configuration fields.",
       "enum": ["auto", "fast", "thorough", "council"]
     },
-    "approvals": {
-      "description": "When OMCS asks for approval of a material action.",
-      "enum": ["material", "always", "never"]
+    "$schema": {
+      "description": "The fixed public schema URL. Credentials and model-account choices are not configuration fields.",
+      "const": "https://raw.githubusercontent.com/Rafcin/oh-my-codex-slim/main/schema/omcs.schema.json"
     },
-    "antiSlop": {
-      "description": "Whether OMCS runs its anti-slop quality gate.",
-      "type": "boolean"
+    "approval": {
+      "description": "The approval policy for material decisions.",
+      "const": "material-decisions"
     },
-    "visibleProgress": {
-      "description": "Whether OMCS reports visible progress during orchestration.",
-      "type": "boolean"
+    "quality": {
+      "description": "Risk-adaptive quality gates.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clarification": { "const": "adaptive" },
+        "design": { "const": "adaptive" },
+        "tdd": { "const": "adaptive" },
+        "review": { "const": "risk-gated" },
+        "antiSlop": { "const": "changed-files" }
+      }
+    },
+    "orchestration": {
+      "description": "Bounded native-agent orchestration settings.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "maxParallel": { "const": 2 },
+        "council": { "const": "explicit-only" }
+      }
     }
   }
 }

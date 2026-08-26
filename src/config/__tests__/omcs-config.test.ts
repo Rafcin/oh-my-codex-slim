@@ -11,11 +11,30 @@ import {
 	resolveOmcsConfig,
 } from "../omcs-config.js";
 
+const SCHEMA_URL = "https://raw.githubusercontent.com/Rafcin/oh-my-codex-slim/main/schema/omcs.schema.json";
+const CANONICAL_CONFIG = {
+	$schema: SCHEMA_URL,
+	version: 1,
+	profile: "auto",
+	approval: "material-decisions",
+	quality: {
+		clarification: "adaptive",
+		design: "adaptive",
+		tdd: "adaptive",
+		review: "risk-gated",
+		antiSlop: "changed-files",
+	},
+	orchestration: {
+		maxParallel: 2,
+		council: "explicit-only",
+	},
+} as const;
+
 async function fixture(): Promise<{ root: string; cwd: string; codexHome: string; globalPath: string; projectPath: string }> {
 	const root = await mkdtemp(join(tmpdir(), "omcs-config-"));
 	const cwd = join(root, "repository", "nested", "working");
 	const codexHome = join(root, "codex-home");
-	const globalPath = join(codexHome, "omcs", "config.json");
+	const globalPath = join(codexHome, "oh-my-codex-slim", "config.json");
 	const projectPath = join(root, "repository", "omcs.config.json");
 	await mkdir(cwd, { recursive: true });
 	await mkdir(join(root, "repository", ".git"));
@@ -23,48 +42,47 @@ async function fixture(): Promise<{ root: string; cwd: string; codexHome: string
 }
 
 describe("OMCS configuration", () => {
-	it("parses the version-one defaults and every execution profile", () => {
-		assert.deepEqual(DEFAULT_OMCS_CONFIG, {
-			version: 1,
-			profile: "auto",
-			approvals: "material",
-			antiSlop: true,
-			visibleProgress: true,
-		});
+	it("parses the canonical version-one defaults and every execution profile", () => {
+		assert.deepEqual(DEFAULT_OMCS_CONFIG, CANONICAL_CONFIG);
+		assert.deepEqual(parseOmcsConfig(Buffer.from(JSON.stringify(CANONICAL_CONFIG)), "project"), CANONICAL_CONFIG);
 		for (const profile of ["auto", "fast", "thorough", "council"]) {
-			assert.deepEqual(parseOmcsConfig(Buffer.from(`{"version":1,"profile":"${profile}"}`), "project"), {
-				version: 1,
+			assert.equal(
+				parseOmcsConfig(Buffer.from(JSON.stringify({ ...CANONICAL_CONFIG, profile })), "project").profile,
 				profile,
-			});
+			);
 		}
 	});
 
-	it("rejects unknown keys, unsupported versions, and oversized values", () => {
+	it("rejects unknown top-level and nested keys, unsupported versions, and oversized values", () => {
 		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"token":"secret"}'), "project"), /project|unknown|invalid/i);
+		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"approvals":"always"}'), "project"), /project|unknown|invalid/i);
+		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"antiSlop":true}'), "project"), /project|unknown|invalid/i);
+		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"visibleProgress":true}'), "project"), /project|unknown|invalid/i);
+		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"quality":{"unknown":"value"}}'), "project"), /project|unknown|invalid/i);
+		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":1,"orchestration":{"unknown":"value"}}'), "project"), /project|unknown|invalid/i);
 		assert.throws(() => parseOmcsConfig(Buffer.from('{"version":2}'), "global"), /global|version|invalid/i);
 		assert.throws(() => parseOmcsConfig(Buffer.alloc(64 * 1024 + 1), "project"), /64|large|size/i);
 	});
 
-	it("uses project policy over global preferences and session over project policy", async () => {
+	it("uses project policy over global preferences and session over project policy without erasing nested defaults", async () => {
 		const { root, cwd, codexHome, globalPath, projectPath } = await fixture();
 		try {
-			await mkdir(join(codexHome, "omcs"), { recursive: true });
-			await writeFile(globalPath, '{"version":1,"profile":"fast","antiSlop":false}');
-			await writeFile(projectPath, '{"version":1,"profile":"thorough","approvals":"always"}');
+			await mkdir(join(codexHome, "oh-my-codex-slim"), { recursive: true });
+			await writeFile(globalPath, '{"version":1,"profile":"fast","quality":{"design":"adaptive"},"orchestration":{"maxParallel":2}}');
+			await writeFile(projectPath, '{"version":1,"profile":"thorough","quality":{"antiSlop":"changed-files"},"orchestration":{"council":"explicit-only"}}');
 			assert.equal((await resolveOmcsConfig({ cwd, codexHome })).effective.profile, "thorough");
-			assert.deepEqual((await resolveOmcsConfig({ cwd, codexHome, session: { profile: "council" } })).sources, {
+			const withSession = await resolveOmcsConfig({
+				cwd,
+				codexHome,
+				session: { profile: "council", quality: { tdd: "adaptive" } },
+			});
+			assert.deepEqual(withSession.sources, {
 				defaults: true,
 				global: globalPath,
 				project: projectPath,
 				session: true,
 			});
-			assert.deepEqual((await resolveOmcsConfig({ cwd, codexHome, session: { profile: "council" } })).effective, {
-				version: 1,
-				profile: "council",
-				approvals: "always",
-				antiSlop: false,
-				visibleProgress: true,
-			});
+			assert.deepEqual(withSession.effective, { ...CANONICAL_CONFIG, profile: "council" });
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
@@ -85,7 +103,7 @@ describe("OMCS configuration", () => {
 	it("refuses symlinked and hardlinked configuration files", async () => {
 		const { root, cwd, codexHome, globalPath, projectPath } = await fixture();
 		try {
-			await mkdir(join(codexHome, "omcs"), { recursive: true });
+			await mkdir(join(codexHome, "oh-my-codex-slim"), { recursive: true });
 			await writeFile(join(root, "global-owned.json"), '{"version":1}');
 			await symlink(join(root, "global-owned.json"), globalPath);
 			await assert.rejects(resolveOmcsConfig({ cwd, codexHome }), /unsafe|symbolic|link/i);
