@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { cp, mkdtemp, readFile, rm, symlink } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { test } from "node:test";
 
 test("release documentation and package surface are slim, attributed, and offline", async () => {
@@ -33,6 +35,46 @@ test("release documentation and package surface are slim, attributed, and offlin
 			packageDocument.files?.includes(required),
 			`missing packaged ${required}`,
 		);
+	}
+	const packed = spawnSync("npm", ["pack", "--json", "--dry-run"], {
+		cwd: root,
+		encoding: "utf8",
+	});
+	assert.equal(packed.status, 0, packed.stderr || packed.stdout);
+	const packedPaths = new Set(
+		(JSON.parse(packed.stdout) as Array<{ files?: Array<{ path?: unknown }> }>)[0]?.files
+			?.map((file) => file.path)
+			.filter((path): path is string => typeof path === "string") ?? [],
+	);
+	assert.equal([...packedPaths].some((path) => path.startsWith("dist/router/")), false, "Router runtime must remain repository-only");
+	for (const required of [
+		"dist/cli/omcs.js",
+		"dist/cli/index.js",
+		"dist/cli/doctor.js",
+		"dist/cli/plugin-registration.js",
+		"dist/config/omcs-config.js",
+		"dist/config/project-config.js",
+		"dist/orchestration/policy.js",
+		"dist/orchestration/receipt.js",
+		"schema/omcs.schema.json",
+	]) assert.equal(packedPaths.has(required), true, `missing packaged ${required}`);
+
+	const isolated = await mkdtemp(join(tmpdir(), "omcs-cli-without-router-"));
+	try {
+		await cp(join(root, "dist"), join(isolated, "dist"), {
+			recursive: true,
+			filter: (source) => !source.includes(`${join("dist", "router")}`),
+		});
+		await symlink(join(root, "node_modules"), join(isolated, "node_modules"), "dir");
+		const result = spawnSync(process.execPath, [join(isolated, "dist", "cli", "omcs.js"), "--help"], {
+			cwd: isolated,
+			encoding: "utf8",
+			env: { PATH: process.env.PATH },
+		});
+		assert.equal(result.status, 0, result.stderr || result.stdout);
+		assert.match(result.stdout, /OMCS management CLI/);
+	} finally {
+		await rm(isolated, { recursive: true, force: true });
 	}
 	const documentation = await Promise.all(
 		[

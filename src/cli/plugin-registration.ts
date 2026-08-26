@@ -4,8 +4,9 @@ import { access, lstat, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join } from "node:path";
 import { z } from "zod";
-import { buildRouterEnvironment } from "../router/commands.js";
 import { OMCS_LOCAL_MARKETPLACE_NAME, OMCS_LOCAL_PLUGIN_CONFIG_KEY, OMCS_PLUGIN_NAME } from "./plugin-marketplace.js";
+
+const CODEX_SYSTEM_PATH = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin";
 
 interface CodexPluginProcessOptions {
 	env: NodeJS.ProcessEnv;
@@ -97,13 +98,42 @@ const defaultExecutor: CodexPluginProcessExecutor = (file, args, options) => new
 	});
 });
 
+async function trustedRunningNodeDirectory(): Promise<string | undefined> {
+	if (!isAbsolute(process.execPath)) return undefined;
+	try {
+		const canonical = await realpath(process.execPath);
+		if (!isAbsolute(canonical)) return undefined;
+		const information = await lstat(canonical);
+		if (!information.isFile() || information.isSymbolicLink()) return undefined;
+		await access(canonical, constants.X_OK);
+		if ((await realpath(canonical)) !== canonical) return undefined;
+		const directory = dirname(canonical);
+		return (await lstat(directory)).isDirectory() ? directory : undefined;
+	} catch {
+		return undefined;
+	}
+}
+
+/** Returns the minimal credential-free environment used to invoke Codex itself. */
+export async function buildCodexEnvironment(): Promise<NodeJS.ProcessEnv> {
+	const runningNodeDirectory = await trustedRunningNodeDirectory();
+	const path = [runningNodeDirectory, ...CODEX_SYSTEM_PATH.split(":")].filter(
+		(directory): directory is string => Boolean(directory),
+	);
+	return {
+		LANG: "C",
+		LC_ALL: "C",
+		PATH: [...new Set(path)].join(":"),
+	};
+}
+
 /** Proves OMCS installation through Codex's exact bounded read-only JSON boundary. */
 export async function readOmcsPluginRegistration(options: CodexPluginRegistrationOptions): Promise<boolean> {
 	const executable = options.codexExecutable === undefined
 		? await resolveTrustedCodexExecutable()
 		: await safeCodexExecutable(options.codexExecutable);
 	if (!executable) throw new Error("Codex executable is unavailable or unsafe");
-	const safe = await buildRouterEnvironment(options.environment ?? process.env);
+	const safe = await buildCodexEnvironment();
 	const environment: NodeJS.ProcessEnv = {
 		PATH: safe.PATH,
 		LANG: "C",

@@ -113,14 +113,20 @@ export async function validatePlugin(pluginRoot: string): Promise<void> {
 	if (!object(mcp) || !object(mcp.mcpServers) || !object(apps) || !object(apps.apps) || !object(hooks) || !object(hooks.hooks)) {
 		throw new Error("plugin auxiliary manifest is invalid");
 	}
-	if (Object.keys(apps.apps).length !== 0 || Object.keys(hooks.hooks).length !== 0) {
+	if (Object.keys(apps).length !== 1 || !Object.hasOwn(apps, "apps") || Object.keys(apps.apps).length !== 0) {
+		throw new Error("plugin apps manifest must have exactly the inert apps shape");
+	}
+	if (Object.keys(hooks).length !== 1 || !Object.hasOwn(hooks, "hooks") || Object.keys(hooks.hooks).length !== 0) {
 		throw new Error("plugin apps and hooks must remain inert");
 	}
 	const mcpServers = mcp.mcpServers;
-	if (Object.keys(mcpServers).length !== 1 || !object(mcpServers.omcs_code_intel)) {
+	if (Object.keys(mcp).length !== 1 || !Object.hasOwn(mcp, "mcpServers") || Object.keys(mcpServers).length !== 1 || !object(mcpServers.omcs_code_intel)) {
 		throw new Error("plugin MCP manifest must contain only local code intelligence");
 	}
 	const codeIntel = mcpServers.omcs_code_intel;
+	if (JSON.stringify(Object.keys(codeIntel).sort()) !== JSON.stringify(["args", "command", "enabled"])) {
+		throw new Error("plugin MCP manifest must contain only the local server fields");
+	}
 	if (codeIntel.command !== "omcs" || JSON.stringify(codeIntel.args) !== JSON.stringify(["mcp-serve", "code-intel"]) || codeIntel.enabled !== true) {
 		throw new Error("plugin MCP manifest must use the local OMCS code-intelligence command");
 	}

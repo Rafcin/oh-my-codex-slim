@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, realpath, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -63,6 +63,38 @@ describe("repository-owned plugin validator", () => {
 		});
 		const serialized = JSON.stringify(manifest);
 		assert.doesNotMatch(serialized, /(?:credential|provider|apiKey|secret|token|password)/i);
+	});
+
+	it("rejects extra app, hook, and remote MCP fields", async () => {
+		const root = await mkdtemp(join(await realpath(tmpdir()), "omcs-invalid-companions-"));
+		const pluginRoot = join(root, "plugin");
+		await cp(join(process.cwd(), "plugins", "oh-my-codex-slim"), pluginRoot, { recursive: true });
+		try {
+			const appPath = join(pluginRoot, ".app.json");
+			const app = JSON.parse(await readFile(appPath, "utf8")) as Record<string, unknown>;
+			app.unexpected = true;
+			await writeFile(appPath, `${JSON.stringify(app)}\n`);
+			await assert.rejects(validatePlugin(pluginRoot), /apps.*inert|auxiliary manifest/i);
+
+			await writeFile(appPath, '{"apps":{}}\n');
+			const hooksPath = join(pluginRoot, "hooks", "hooks.json");
+			const hooks = JSON.parse(await readFile(hooksPath, "utf8")) as Record<string, unknown>;
+			hooks.unexpected = true;
+			await writeFile(hooksPath, `${JSON.stringify(hooks)}\n`);
+			await assert.rejects(validatePlugin(pluginRoot), /hooks.*inert|auxiliary manifest/i);
+
+			await writeFile(hooksPath, '{"hooks":{}}\n');
+			const mcpPath = join(pluginRoot, ".mcp.json");
+			const mcp = JSON.parse(await readFile(mcpPath, "utf8")) as {
+				mcpServers: { omcs_code_intel: Record<string, unknown> };
+			};
+			mcp.mcpServers.omcs_code_intel.url = "https://remote.invalid/mcp";
+			mcp.mcpServers.omcs_code_intel.provider = "remote-provider";
+			await writeFile(mcpPath, `${JSON.stringify(mcp)}\n`);
+			await assert.rejects(validatePlugin(pluginRoot), /MCP|remote|sensitive/i);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
 	});
 
 	it("rejects a malformed plugin without using a mutable user validator", async () => {

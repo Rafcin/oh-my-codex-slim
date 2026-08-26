@@ -224,27 +224,10 @@ export async function main(
 			}
 			return;
 		case "migrate": {
-			const migration = await import("../router/migrate-opencodex.js");
-			try {
-				const request = migration.parseMigrationCliArgs(options);
-				const asJson = options.includes("--json");
-				if (request.kind === "rollback") {
-					writeResult(
-						await migration.rollbackOpenCodexMigration(request.manifestPath),
-						asJson,
-					);
-					return;
-				}
-				process.stderr.write(
-					"omcs: OpenCodex is the supported transport; new OpenCodex-to-Router migrations are disabled\n",
-				);
-				process.exitCode = 64;
-			} catch {
-				process.stderr.write(
-					"omcs: OpenCodex migration refused; inspect the migration report and owned state\n",
-				);
-				process.exitCode = 1;
-			}
+			process.stderr.write(
+				"omcs: legacy OpenCodex-to-Router migration is repository-only; no Router runtime is shipped\n",
+			);
+			process.exitCode = 64;
 			return;
 		}
 		case "mcp-serve":

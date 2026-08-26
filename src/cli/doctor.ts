@@ -8,13 +8,13 @@ import {
 } from "../config/codex-home.js";
 import { hasManagedConfigBlock } from "../config/generator.js";
 import { readBoundedRegularFile } from "../config/safe-reader.js";
-import { buildRouterEnvironment } from "../router/commands.js";
 import type { RouterCapabilities } from "../router/types.js";
 import { agentsLifecycle } from "./agents-lifecycle.js";
 import { resolvePackagedOmcsMarketplace } from "./plugin-marketplace.js";
 import { omcsPackageRoot } from "./package-root.js";
 import { mcpHealthHandshake } from "./mcp-health.js";
 import {
+	buildCodexEnvironment,
 	readOmcsPluginRegistration,
 	resolveTrustedCodexExecutable,
 } from "./plugin-registration.js";
@@ -55,7 +55,7 @@ async function defaultCodexVersion(codexHome: string): Promise<string | null> {
 	try {
 		const executable = await resolveTrustedCodexExecutable();
 		if (!executable) return null;
-		const safeEnvironment = await buildRouterEnvironment();
+		const safeEnvironment = await buildCodexEnvironment();
 		const result = await promisify(execFile)(executable, ["--version"], {
 			timeout: 15_000,
 			maxBuffer: 64 * 1024,
