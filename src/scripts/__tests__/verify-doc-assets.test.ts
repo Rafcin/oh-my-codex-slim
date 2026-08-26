@@ -61,4 +61,34 @@ describe("public OMCS documentation assets", () => {
 			/reviewed digest does not match/i,
 		);
 	});
+
+	it("keeps each reviewed PNG transcription exact, without stale or omitted visible lines", () => {
+		assert.deepEqual(REVIEWED_PNG_FIXTURES, {
+			"omcs-configure-project.png": {
+				sha256: "c87d603361e1e4b00a058352bbf1b1ca2c3f193d3e4ba9237b20a4c75d182696",
+				visibleText: [
+					"acme-widget — deterministic CLI fixture", "example@acme-widget", ":/Users/example/acme-widget $",
+					"omcs configure --scope project --profile auto --dry-run --json", "{", '"scope": "project",', '"action": "would-create",',
+					'"path": "/Users/example/acme-widget/omcs.config.json",', '"bytes": 398,', '"effectiveProfile": "auto"', "}",
+				],
+			},
+			"omcs-route-declaration.png": {
+				sha256: "6dd535368485a38d3d9c4c702efd492f64c16742b564a14662b48b9aa5660e27",
+				visibleText: [
+					"acme-widget — Codex CLI", "example@acme-widget", ":/Users/example/acme-widget $", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
+					"risk: public interface with persistent configuration", "skills: context, codebase-design, plan, tdd, verification, code-review",
+					"agents: architect → explorer + librarian → terra-fixer → reviewer", "approval: material-decisions", "● Understanding complete", "● Design ready for approval", "● Implementation pending",
+				],
+			},
+			"omcs-verification-receipt.png": {
+				sha256: "c002ca9e4744144f8ad6a9329e249c78331a70bc8c9be5b6b59985089d7c5828",
+				visibleText: [
+					"acme-widget — synthetic receipt fixture", "example@acme-widget", ":/Users/example/acme-widget $",
+					"cat .omcs/runs/2026-08-26T12-00-00-000Z-12345678-1234-4abc-8def-1234567890ab.json", "{", '"schemaVersion": 1,', '"profile": "auto",', '"route": "full",',
+					'"skills": ["tdd", "verification"],', '"agents": ["omcs_architect", "omcs_reviewer"],', '"approval": "material-decisions",',
+					'"verification": [{"command": "npm test", "outcome": "passed"}],', '"review": {"verdict": "ship"}', "}",
+				],
+			},
+		});
+	});
 });
