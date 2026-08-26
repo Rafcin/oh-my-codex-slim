@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, it } from "node:test";
 import { readOmcsPluginRegistration, resolveTrustedCodexExecutable } from "../plugin-registration.js";
+import { resolvePackagedOmcsMarketplace } from "../plugin-marketplace.js";
 
 const installed = {
 	pluginId: "oh-my-codex-slim@omcs-local",
@@ -31,6 +32,16 @@ async function withCodexExecutable<T>(operation: (executable: string) => Promise
 }
 
 describe("Codex OMCS plugin registration evidence", () => {
+	it("resolves the repository marketplace to the OMCS discovery plugin", async () => {
+		const marketplace = await resolvePackagedOmcsMarketplace(process.cwd());
+		assert.ok(marketplace);
+		assert.equal(marketplace?.pluginRoot, join(process.cwd(), "plugins", "oh-my-codex-slim"));
+		assert.equal(
+			marketplace?.pluginManifestPath,
+			join(process.cwd(), "plugins", "oh-my-codex-slim", ".codex-plugin", "plugin.json"),
+		);
+	});
+
 	it("resolves a supported trusted ~/.bun/bin Codex install to its canonical executable target", async () => {
 		const root = await mkdtemp(join(tmpdir(), "omcs-codex-executable-"));
 		try {

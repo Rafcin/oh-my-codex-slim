@@ -1,20 +1,46 @@
 {
   "name": "oh-my-codex-slim",
   "version": "0.1.0",
-  "description": "Codex-native discovery bundle for Oh My Codex Slim.",
+  "description": "Codex-native orchestration system for safe, evidence-led engineering work.",
   "author": {
     "name": "Oh My Codex Slim"
   },
   "skills": "./skills/",
+  "keywords": [
+    "codex",
+    "openai",
+    "cli",
+    "agents",
+    "orchestration",
+    "multi-agent",
+    "omcs",
+    "auto",
+    "fast",
+    "thorough",
+    "council",
+    "omcs_architect",
+    "omcs_explorer",
+    "omcs_librarian",
+    "omcs_oracle",
+    "omcs_fixer",
+    "omcs_terra_fixer",
+    "omcs_designer",
+    "omcs_reviewer"
+  ],
   "interface": {
     "displayName": "Oh My Codex Slim",
     "shortDescription": "Codex-native OMCS discovery and managed setup.",
-    "longDescription": "A local discovery bundle for the managed OMCS setup, future skill catalog, optional MCP companion, and lifecycle hook companion.",
+    "longDescription": "An orchestration system for substantive engineering work. OMCS selects one of four profiles (auto, fast, thorough, or explicit-only council), composes focused skills, and coordinates eight native agents with visible risk gates, verification, and review.",
     "developerName": "Oh My Codex Slim",
     "category": "Developer Tools",
-    "capabilities": [],
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
     "defaultPrompt": [
-      "Help me inspect the Oh My Codex Slim setup."
+      "Use OMCS to solve this issue with a risk-gated, evidence-led engineering workflow.",
+      "Use Oh My Codex Slim for this substantive engineering task."
     ]
   },
   "mcpServers": "./.mcp.json",
