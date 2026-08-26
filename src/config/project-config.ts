@@ -299,15 +299,17 @@ export async function writeOmcsConfig(options: WriteOmcsConfigOptions): Promise<
 		if (visible) {
 			throw new Error("OMCS configuration committed; cleanup/recovery is required", { cause: error });
 		}
-		try {
-			if (stage) await cleanupAbortedStage(stage);
-			if (priorQuarantine && parent) {
+		const recoveryErrors: unknown[] = [];
+		if (priorQuarantine && parent) {
+			try {
 				await restorePriorNoClobber(parent, path, priorQuarantine);
 				priorQuarantine = undefined;
-			}
-		} catch (rollbackError) {
-			throw new AggregateError([error, rollbackError], "OMCS configuration pre-commit recovery failed");
+			} catch (recoveryError) { recoveryErrors.push(recoveryError); }
 		}
+		if (stage) {
+			try { await cleanupAbortedStage(stage); } catch (recoveryError) { recoveryErrors.push(recoveryError); }
+		}
+		if (recoveryErrors.length > 0) throw new AggregateError([error, ...recoveryErrors], "OMCS configuration pre-commit recovery failed");
 		throw error;
 	} finally {
 		await closeStage(stage);

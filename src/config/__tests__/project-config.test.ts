@@ -176,17 +176,20 @@ describe("ownership-safe OMCS configuration writer", () => {
 		}
 	});
 
-	it("rejects a swapped private stage source before linking and never exposes its bytes", async () => {
+	it("rejects a renamed private stage source before linking and restores the prior public bytes", async () => {
 		const { root, path } = await fixture();
 		try {
 			await mkdir(join(root, "nested"));
 			const before = Buffer.from('{"version":1,"profile":"fast"}\n');
 			await writeFile(path, before);
 			const untrusted = Buffer.from("untrusted stage source\n");
-			__setWriteOmcsConfigHooksForTest({ beforeStageSourceLink: async (stagePath) => { await writeFile(stagePath, untrusted); } });
-			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /stage|changed|unsafe/i);
+			const untrustedPath = join(root, "untrusted-source.json");
+			await writeFile(untrustedPath, untrusted);
+			__setWriteOmcsConfigHooksForTest({ beforeStageSourceLink: async (stagePath) => { await rename(untrustedPath, stagePath); } });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /pre-commit|stage|changed|unsafe/i);
 			assert.deepEqual(await readFile(path), before);
 			assert.doesNotMatch((await readFile(path)).toString(), /untrusted/);
+			assert.ok((await readdir(join(root, "nested"))).some((entry) => entry.endsWith(".stage")), "replaced source remains private recovery evidence");
 		} finally {
 			__setWriteOmcsConfigHooksForTest();
 			await rm(root, { recursive: true, force: true });
