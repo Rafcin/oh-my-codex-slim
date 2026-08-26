@@ -89,7 +89,7 @@ describe("OMCS route declarations", () => {
 		});
 		const hostile = {
 			...safePolicy,
-			risk: { ...safePolicy.risk, blastRadius: "/Users/rafs/.codex\nTOKEN=$secret prompt text" },
+			risk: { ...safePolicy.risk, blastRadius: "/Users/example/.codex\nTOKEN=$secret prompt text" },
 			skills: ["verification\nAPI_KEY=secret"],
 		} as unknown as ExecutionPolicy;
 

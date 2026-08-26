@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 
 const maxScanBytes = 1_000_000;
 const privateStatePath = /^(?:\.superpowers\/sdd\/|\.omcs\/|\.gjc\/)/;
-const syntheticLocalPaths = new Set(["/Users/example/", "/Users/rafs/", "/home/me/", "/home/.../"]);
 
 export interface PublicSecretFinding {
 	path: string;
@@ -28,9 +27,9 @@ interface Pattern {
 
 const patterns: readonly Pattern[] = [
 	{ rule: "authorization-header", pattern: /\bauthorization\s*:\s*(?:bearer|basic|token)\s+([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
-	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
+	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=\"?([A-Za-z0-9._~+/-]{8,})\"?/gi, value: (match) => match[1] ?? "" },
 	{ rule: "github-token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})\b/g, value: (match) => match[0] },
-	{ rule: "local-home-path", pattern: /(?:^|[\s"'(=])(\/(?:Users|home)\/[A-Za-z0-9._-]+\/)/g, value: (match) => match[1] ?? "" },
+	{ rule: "local-home-path", pattern: /(?:^|[\s"'(=])((?:\/Users\/[A-Za-z0-9._-]+)(?:\/[A-Za-z0-9._-]+)*)(?=$|[\s"'(),;])/g, value: (match) => match[1] ?? "" },
 	{ rule: "openai-token", pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
 	{ rule: "pem-private-key", pattern: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----\r?\n(?:[A-Za-z0-9+/=]{16,}\r?\n)+-----END (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/gi, value: (match) => match[0] },
 	{ rule: "provider-token", pattern: /\b(?:xai|sk-ant|AIza)[-_]?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
@@ -80,7 +79,7 @@ function documentedPlaceholder(value: string): boolean {
 }
 
 function documentedSyntheticLocalPath(value: string): boolean {
-	return syntheticLocalPaths.has(value);
+	return value.startsWith("/Users/example/");
 }
 
 function assertRegularBoundedFile(stat: { isFile(): boolean; size: number; dev: number; ino: number; nlink: number }, trackedPath: string): void {

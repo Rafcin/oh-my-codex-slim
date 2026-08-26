@@ -24,7 +24,7 @@ describe("public secret scan", () => {
 			await writeFile(join(root, "key.pem"), ["-----BEGIN ", "PRIVATE KEY-----\n", letters, "\n-----END ", "PRIVATE KEY-----"].join(""));
 			await writeFile(join(root, "tokens.txt"), ["ghp_", "b".repeat(36), "\n", "sk-proj-", "c".repeat(48), "\n", "xai-", "d".repeat(48)].join(""));
 			await writeFile(join(root, "github-pat.txt"), ["github", "_pat_", "e".repeat(40)].join(""));
-			await writeFile(join(root, "headers.txt"), ["Authorization: Bearer ", letters, "\nCookie: session=", letters].join(""));
+			await writeFile(join(root, "headers.txt"), ["Authorization: Bearer ", letters, "\nCookie: session=\"", letters, "\""].join(""));
 			await writeFile(join(root, "openssh.key"), ["-----BEGIN OPENSSH ", "PRIVATE KEY-----\n", letters, "\n-----END OPENSSH ", "PRIVATE KEY-----"].join(""));
 			await writeFile(join(root, "local-path.txt"), ["/Users/", "fixture-user/project"].join(""));
 			await writeFile(join(root, ".env.local"), "CONFIG_NAME=fixture\n");
@@ -74,6 +74,23 @@ describe("public secret scan", () => {
 			await writeFile(join(root, "mixed.txt"), [placeholder, real, "example", real].join(" "));
 			stage(root);
 			assert.deepEqual(await scanPublicFiles(root), [{ path: "mixed.txt", rule: "openai-token" }]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("reports approved-only and bare local home paths without exposing either username", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "home-a.txt"), ["/Users/", "rafs/.codex"].join(""));
+			await writeFile(join(root, "home-b.txt"), ["/Users/", "alice"].join(""));
+			stage(root);
+			const findings = await scanPublicFiles(root);
+			assert.deepEqual(findings, [
+				{ path: "home-a.txt", rule: "local-home-path" },
+				{ path: "home-b.txt", rule: "local-home-path" },
+			]);
+			assert.doesNotMatch(JSON.stringify(findings), /rafs|alice/i);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
