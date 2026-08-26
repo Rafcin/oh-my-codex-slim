@@ -15,7 +15,7 @@ for (const path of [environment.HOME, environment.CODEX_HOME, environment.TMPDIR
 writeFileSync(environment.npm_config_userconfig!, "", { mode: 0o600 });
 
 function allowed(file: string, args: string[]): boolean {
-	if (file === "npm") return (args[0] === "run" && ["build", "lint", "test", "verify:skills"].includes(args[1] ?? ""))
+	if (file === "npm") return (args[0] === "run" && ["build", "lint", "test", "verify:skills", "verify:docs", "verify:secrets"].includes(args[1] ?? ""))
 		|| (args.length === 1 && args[0] === "test")
 		|| (args[0] === "pack" && args.join(" ") === "pack --dry-run --json");
 	if (file !== process.execPath) return false;
@@ -57,18 +57,27 @@ try {
 		"dist/scripts/__tests__/validate-plugin.test.js",
 	]);
 	run("npm", ["run", "verify:skills"]);
+	run("npm", ["run", "verify:docs"]);
+	run("npm", ["run", "verify:secrets"]);
 	run(process.execPath, ["dist/scripts/validate-plugin.js", "plugins/oh-my-codex-slim"]);
 	const packed = JSON.parse(run("npm", ["pack", "--dry-run", "--json"])) as Array<{ files: Array<{ path: string }> }>;
 	const paths = new Set(packed[0]?.files.map((file) => file.path) ?? []);
 	for (const required of [
-		"dist/cli/omcs.js", ".agents/plugins/marketplace.json",
+		"dist/cli/omcs.js", ".agents/plugins/marketplace.json", "dist/scripts/public-secret-scan.js",
 		"dist/config/safe-reader.js",
 		"plugins/oh-my-codex-slim/.codex-plugin/plugin.json", "README.md",
 		"docs/installation.md", "docs/architecture.md", "docs/opencodex.md", "docs/troubleshooting.md",
+		"docs/execution-modes.md", "docs/agents-and-skills.md", "docs/configuration.md", "docs/examples.md", "docs/upstream-sources.md",
+		"docs/diagrams/omcs-pipeline.mmd", "docs/diagrams/omcs-routing.mmd", "docs/diagrams/omcs-config-precedence.mmd",
+		"docs/assets/omcs-pipeline.svg", "docs/assets/omcs-routing.svg", "docs/assets/omcs-config-precedence.svg",
+		"docs/assets/omcs-configure-project.png", "docs/assets/omcs-route-declaration.png", "docs/assets/omcs-verification-receipt.png",
 		"LICENSE", "THIRD_PARTY_NOTICES.md",
 	]) if (!paths.has(required)) throw new Error(`npm artifact is missing ${required}`);
 	for (const path of paths) {
-		if (/(__tests__|test\/fixtures|\.test\.|update-worker|tmux|opencode(?!x))/i.test(path)) throw new Error(`npm artifact contains prohibited legacy/test path: ${path}`);
+		if (/(__tests__|test\/fixtures|\.test\.|update-worker|tmux|opencode(?!x)|(?:^|\/)(?:\.superpowers\/sdd|\.omcs|\.gjc|router|codex-router)(?:\/|$)|docs\/superpowers|(?:^|\/)(?:temp|tmp|render)(?:\/|$)|(?:^|\/)(?:\.env(?:\.|$)|id_(?:rsa|ed25519)|[^/]+\.(?:pem|key|p12|pfx))$|(?:^|\/)(?:Users|home)\/)/i.test(path)) {
+			throw new Error(`npm artifact contains prohibited public path: ${path}`);
+		}
+		if (!/(?:^|\/)(?:[^/.]+|[^/]+\.(?:js|mjs|json|md|mmd|svg|png))$/i.test(path)) throw new Error(`npm artifact contains unapproved binary or extension: ${path}`);
 	}
 	if (paths.has("dist/mcp/clonedeps.js")) throw new Error("npm artifact exposes the legacy unbounded dependency-clone helper");
 	process.stdout.write("verify:release passed every offline OMCS gate; fresh App/CLI discovery and any billed smoke remain separate.\n");

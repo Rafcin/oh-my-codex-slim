@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { buildReleaseEnvironment } from "../release-environment.js";
@@ -25,5 +26,22 @@ describe("release verification isolation", () => {
 		assert.match(source, /buildReleaseEnvironment\(process\.env, isolatedRoot, process\.execPath\)/);
 		assert.match(source, /dist\/scripts\/validate-plugin\.js/);
 		assert.match(source, /dist\/config\/safe-reader\.js/);
+	});
+
+	it("packs the public OMCS runtime, policy, provenance, guides, diagrams, and redacted screenshots", () => {
+		const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], {
+			cwd: process.cwd(),
+			encoding: "utf8",
+		});
+		assert.equal(packed.status, 0, packed.stderr);
+		const paths = new Set((JSON.parse(packed.stdout) as Array<{ files: Array<{ path: string }> }>)[0]?.files.map((file) => file.path));
+		for (const required of [
+			"dist/cli/omcs.js", "dist/config/omcs-config.js", "dist/orchestration/policy.js",
+			"schema/omcs.schema.json", "docs/upstream-sources.md", "THIRD_PARTY_NOTICES.md",
+			"docs/execution-modes.md", "docs/agents-and-skills.md", "docs/configuration.md", "docs/examples.md",
+			"docs/diagrams/omcs-pipeline.mmd", "docs/diagrams/omcs-routing.mmd", "docs/diagrams/omcs-config-precedence.mmd",
+			"docs/assets/omcs-pipeline.svg", "docs/assets/omcs-routing.svg", "docs/assets/omcs-config-precedence.svg",
+			"docs/assets/omcs-configure-project.png", "docs/assets/omcs-route-declaration.png", "docs/assets/omcs-verification-receipt.png",
+		]) assert.equal(paths.has(required), true, required);
 	});
 });

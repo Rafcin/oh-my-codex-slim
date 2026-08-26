@@ -11,10 +11,11 @@
     "dev": "tsc --watch",
     "lint": "biome lint src",
     "sync:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts --sync",
-		"test": "npm run build && node --test dist/cli/__tests__/package-bin-contract.test.js dist/cli/__tests__/slim-boundary.test.js dist/cli/__tests__/command-parsing.test.js dist/cli/__tests__/config.test.js dist/config/__tests__/omcs-config.test.js dist/config/__tests__/project-config.test.js dist/config/__tests__/safe-reader.test.js dist/orchestration/__tests__/risk.test.js dist/orchestration/__tests__/policy.test.js dist/orchestration/__tests__/declaration.test.js dist/orchestration/__tests__/receipt.test.js dist/scripts/__tests__/verify-doc-assets.test.js",
+		"test": "npm run build && node --test dist/cli/__tests__/package-bin-contract.test.js dist/cli/__tests__/slim-boundary.test.js dist/cli/__tests__/command-parsing.test.js dist/cli/__tests__/config.test.js dist/config/__tests__/omcs-config.test.js dist/config/__tests__/project-config.test.js dist/config/__tests__/safe-reader.test.js dist/orchestration/__tests__/risk.test.js dist/orchestration/__tests__/policy.test.js dist/orchestration/__tests__/declaration.test.js dist/orchestration/__tests__/receipt.test.js dist/scripts/__tests__/verify-doc-assets.test.js dist/scripts/__tests__/public-secret-scan.test.js",
 		"verify:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts",
 		"verify:docs": "npm run build && node dist/scripts/verify-doc-assets.js",
-		"verify:release": "node --experimental-strip-types src/scripts/verify-release.ts"
+		"verify:release": "node --experimental-strip-types src/scripts/verify-release.ts",
+		"verify:secrets": "node --experimental-strip-types src/scripts/public-secret-scan.ts"
   },
   "engines": {
     "node": ">=22.19.0"
@@ -53,6 +54,7 @@
 		"dist/orchestration/declaration.js",
 		"dist/orchestration/receipt.js",
 		"dist/orchestration/packets.js",
+		"dist/scripts/public-secret-scan.js",
 		".agents/plugins/marketplace.json",
 		"plugins/oh-my-codex-slim/",
 		"schema/omcs.schema.json",

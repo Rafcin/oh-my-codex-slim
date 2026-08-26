@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { chmod, mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { describe, it } from "node:test";
@@ -36,6 +36,14 @@ describe("slim runtime boundary", () => {
     ];
     assert.doesNotMatch(pkg, new RegExp(disallowedRuntimeTerms.join("|"), "i"));
   });
+
+	it("keeps private run state and scratch reports out of the tracked source tree", () => {
+		const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: process.cwd(), encoding: "buffer" })
+			.toString("utf8")
+			.split("\0")
+			.filter(Boolean);
+		assert.deepEqual(tracked.filter((path) => /^(?:\.superpowers\/sdd\/|\.omcs\/|\.gjc\/)/.test(path)), []);
+	});
 
   it("handles the setup dry run without forwarding it to Codex", async () => {
     const temporaryDirectory = await mkdtemp(join(await realpath(tmpdir()), "omcs-router-smoke-"));
