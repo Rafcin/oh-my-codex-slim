@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { link, lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -337,6 +337,30 @@ describe("public secret scan", () => {
 			}), /injected approved-stage write failure/);
 			await assert.rejects(lstat(target), /ENOENT/);
 			assert.deepEqual(await readdir(approvedDirectory), []);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("recovers an exact orphaned owned stage link after interrupted no-clobber install", async () => {
+		const root = await mkdtemp(join(tmpdir(), "omcs-approved-package-recovery-"));
+		try {
+			const approvedDirectory = join(root, "release");
+			await mkdir(approvedDirectory, { mode: 0o700 });
+			const source = join(root, "candidate.tgz");
+			const target = join(approvedDirectory, "approved.tgz");
+			const orphanedStage = join(approvedDirectory, ".approved.tgz.12345678-1234-4abc-8def-1234567890ab.stage");
+			const approvedBytes = await packageTarball([{ path: "README.md", bytes: Buffer.from("approved\n") }]);
+			await writeFile(source, approvedBytes, { mode: 0o600 });
+			await writeFile(orphanedStage, approvedBytes, { mode: 0o600 });
+			await link(orphanedStage, target);
+			assert.equal((await lstat(target)).nlink, 2);
+
+			const expected = await publicSecretScanner.scanNpmPackageArtifact(source);
+			assert.deepEqual(await publicSecretScanner.preserveNpmPackageArtifact(source, target, expected), expected);
+			assert.equal((await lstat(target)).nlink, 1);
+			assert.deepEqual(await readdir(approvedDirectory), ["approved.tgz"]);
+			assert.deepEqual(await readFile(target), approvedBytes);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

@@ -2,7 +2,7 @@
 import { execFileSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { constants, realpathSync } from "node:fs";
-import { link, lstat, open, unlink } from "node:fs/promises";
+import { link, lstat, open, opendir, unlink } from "node:fs/promises";
 import { basename, dirname, join, posix, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
@@ -207,9 +207,9 @@ function safeArtifactEntryPath(name: string): string {
 	return path;
 }
 
-async function readPrivateArtifact(path: string): Promise<Buffer> {
+async function readPrivateArtifact(path: string, expectedLinks = 1): Promise<Buffer> {
 	const namedBefore = await lstat(path);
-	if (namedBefore.isSymbolicLink() || !namedBefore.isFile() || namedBefore.nlink !== 1 || (namedBefore.mode & 0o077) !== 0
+	if (namedBefore.isSymbolicLink() || !namedBefore.isFile() || namedBefore.nlink !== expectedLinks || (namedBefore.mode & 0o077) !== 0
 		|| namedBefore.size <= 0 || namedBefore.size > maxArtifactBytes) {
 		throw new Error("public-secret-scan: refuses unsafe npm artifact");
 	}
@@ -228,9 +228,8 @@ async function readPrivateArtifact(path: string): Promise<Buffer> {
 	}
 }
 
-/** Hashes and scans exact regular-file entries from one private npm tarball without extracting it. */
-export async function scanNpmPackageArtifact(path: string): Promise<NpmPackageArtifactScan> {
-	const bytes = await readPrivateArtifact(resolve(path));
+async function scanNpmPackageArtifactWithLinks(path: string, expectedLinks: number): Promise<NpmPackageArtifactScan> {
+	const bytes = await readPrivateArtifact(resolve(path), expectedLinks);
 	const paths: string[] = [];
 	const findings: PublicSecretFinding[] = [];
 	const seen = new Set<string>();
@@ -279,6 +278,11 @@ export async function scanNpmPackageArtifact(path: string): Promise<NpmPackageAr
 	};
 }
 
+/** Hashes and scans exact regular-file entries from one private npm tarball without extracting it. */
+export async function scanNpmPackageArtifact(path: string): Promise<NpmPackageArtifactScan> {
+	return scanNpmPackageArtifactWithLinks(path, 1);
+}
+
 function sameArtifactScan(left: NpmPackageArtifactScan, right: NpmPackageArtifactScan): boolean {
 	return left.sha256 === right.sha256
 		&& JSON.stringify(left.paths) === JSON.stringify(right.paths)
@@ -301,6 +305,54 @@ async function removeOwnedStage(path: string, identity: { dev: number; ino: numb
 		throw new Error("public-secret-scan: refuses to remove a changed approved artifact stage");
 	}
 	await unlink(path);
+}
+
+function ownedStageName(target: string, name: string): boolean {
+	const prefix = `.${basename(target)}.`;
+	const suffix = ".stage";
+	if (!name.startsWith(prefix) || !name.endsWith(suffix)) return false;
+	const identifier = name.slice(prefix.length, -suffix.length);
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(identifier);
+}
+
+async function readOrRecoverApprovedArtifact(target: string, expected: NpmPackageArtifactScan): Promise<NpmPackageArtifactScan> {
+	const targetState = await lstat(target);
+	if (targetState.isSymbolicLink() || !targetState.isFile() || (targetState.mode & 0o077) !== 0) {
+		throw new Error("public-secret-scan: refuses unsafe approved npm artifact");
+	}
+	if (targetState.nlink === 1) {
+		const existing = await scanNpmPackageArtifact(target);
+		if (sameArtifactScan(existing, expected)) return existing;
+		throw new Error("public-secret-scan: refuses to replace an approved npm artifact");
+	}
+	if (targetState.nlink !== 2) throw new Error("public-secret-scan: refuses unsafe approved npm artifact");
+	const linkedScan = await scanNpmPackageArtifactWithLinks(target, 2);
+	if (!sameArtifactScan(linkedScan, expected)) throw new Error("public-secret-scan: refuses to replace an approved npm artifact");
+
+	const directory = dirname(target);
+	const linkedStages: string[] = [];
+	const handle = await opendir(directory);
+	try {
+		let visited = 0;
+		for (;;) {
+			const entry = await handle.read();
+			if (!entry) break;
+			visited += 1;
+			if (visited > maxArtifactEntries) throw new Error("public-secret-scan: refuses oversized approved artifact directory");
+			if (!ownedStageName(target, entry.name)) continue;
+			const candidate = join(directory, entry.name);
+			const state = await lstat(candidate);
+			if (!state.isSymbolicLink() && state.isFile() && state.dev === targetState.dev && state.ino === targetState.ino) linkedStages.push(candidate);
+		}
+	} finally {
+		await handle.close();
+	}
+	if (linkedStages.length !== 1) throw new Error("public-secret-scan: refuses ambiguous approved artifact recovery");
+	await removeOwnedStage(linkedStages[0]!, { dev: targetState.dev, ino: targetState.ino });
+	await syncDirectory(directory);
+	const recovered = await scanNpmPackageArtifact(target);
+	if (!sameArtifactScan(recovered, expected)) throw new Error("public-secret-scan: approved npm artifact changed during recovery");
+	return recovered;
 }
 
 /** Preserves one previously scanned private artifact with exclusive, no-clobber ownership. */
@@ -355,9 +407,7 @@ export async function preserveNpmPackageArtifact(
 		await removeOwnedStage(stagePath, stageIdentity);
 		await syncDirectory(dirname(target));
 		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-		const existing = await scanNpmPackageArtifact(target);
-		if (sameArtifactScan(existing, expected)) return existing;
-		throw new Error("public-secret-scan: refuses to replace an approved npm artifact");
+		return readOrRecoverApprovedArtifact(target, expected);
 	}
 	await removeOwnedStage(stagePath, stageIdentity);
 	await syncDirectory(dirname(target));
