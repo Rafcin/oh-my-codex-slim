@@ -5,14 +5,20 @@ description: Implement a feature or bug fix test-first when the user asks for re
 
 # Test-Driven Development
 
-Work in small vertical slices through a public behavior seam.
+## Entry conditions
 
-Before production code, write one focused test whose expected value comes from the requirement, a known-good example, or a reproduced bug. Name the production change that would make the test fail. Run it and confirm the failure is caused by the missing behavior, not a typo, import error, or unrelated broken baseline.
+Use for an observable behavior change, regression, or approved behavior seam. Work in small vertical slices through the public seam. Before production code, write one focused test whose expected value comes from the requirement, known-good example, or reproduced bug. Confirm its red result is missing behavior, not a typo, import error, or unrelated baseline failure.
 
-Implement only enough code to make that test pass. Rerun the focused test and relevant neighboring tests. Refactor only while green, preserving the public behavior. Then start the next slice with a new failing test.
+## Scope limit
 
-Prefer tests that survive internal refactoring. Avoid assertions against private helpers, duplicated implementation logic in expected values, broad snapshots without a stable contract, and mocks of collaborators you own. Use a fake only at a genuine external boundary and preserve the dependency's important behavior.
+Implement only enough to make that test pass, rerun focused and neighboring tests, and refactor only while green. Do not test private helpers, duplicate implementation logic in expected values, use broad snapshots without a stable contract, or add speculative behavior. A fake belongs only at a genuine external boundary.
 
-For a bug, first reproduce the exact symptom and convert the minimized case into the regression test. For configuration or generated artifacts, validate the observable consumer contract rather than wording alone.
+For a bug, minimize the reported symptom into the regression test. For configuration or generated artifacts, test the observable consumer contract.
 
-Completion requires recorded red evidence, green evidence, focused and baseline checks, and a clean diff with no speculative behavior added beyond the tested requirement.
+## Exit evidence
+
+Record red evidence, green evidence, focused and baseline checks, and a clean diff with no behavior beyond the tested requirement.
+
+## Next gate
+
+Hand the completed slice to `implement` for its route-level report, then `verification`; use changed-file anti-slop before review when OMCS requires it.

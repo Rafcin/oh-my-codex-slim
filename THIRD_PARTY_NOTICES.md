@@ -19,7 +19,7 @@ Adapted files must retain the applicable notice.
 ## alvinunreal/oh-my-opencode-slim
 
 - Repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
-- Revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
 - License: MIT.
 - Upstream-owner/author metadata (not a copied literal notice): the pinned
   `.all-contributorsrc` records project owner/login `alvinunreal` and display
@@ -54,7 +54,7 @@ Adapted files must retain the applicable notice.
 ## mattpocock/skills
 
 - Repository: <https://github.com/mattpocock/skills>
-- Revision: `5b15a47f2d7150f545fbcacbfe381787fc0230dc`
+- Revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
 - License: MIT.
 - Upstream author/copyright-holder metadata: the literal pinned notice names
   `Matt Pocock`; the authoritative repository owner identity is `mattpocock`.
@@ -207,13 +207,13 @@ Adapted files must retain the applicable notice.
 
 ## Oh My OpenAgent boundary
 
-Repository owner metadata: the authoritative upstream owner identity is
-`code-yeongyu`, from <https://github.com/code-yeongyu/oh-my-openagent>; no
-fuller legal name is published in the repository metadata checked for this
-behavioral reference.
-
-Oh My OpenAgent is a behavioral research reference only. Its Sustainable Use
-licensed implementation is not copied, adapted, or included in this project.
+- Source repository: <https://github.com/code-yeongyu/oh-my-openagent>
+- Source path(s): no source text or prompt copied; repository-level behavioral reference only
+- Pinned revision: `b48ab1086b338921ccd99a11183f91eefbb169f2`
+- License: Sustainable Use License
+- Status: behavioral reference only; no adaptation or inclusion
+- Upstream author/copyright holder: no personal name published in the inspected repository metadata
+- Repository owner: `code-yeongyu`
 
 ## Skill-level provenance
 
@@ -226,15 +226,37 @@ is absent from a pinned copyright notice.
 - Source repository: <https://github.com/Yeachan-Heo/oh-my-codex>
 - Source path: `skills/ai-slop-cleaner/SKILL.md`
 - Pinned revision: `3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)
 - Repository owner: `Yeachan-Heo`
+
+### codebase-design
+
+- Source repository: <https://github.com/mattpocock/skills>
+- Source path: `skills/engineering/codebase-design/SKILL.md`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
+- Status: modified adaptation
+- Upstream author/copyright holder: Matt Pocock
+- Repository owner: `mattpocock`
+
+### context
+
+- Source repository: <https://github.com/mattpocock/skills>
+- Source path: `skills/engineering/grill-with-docs/SKILL.md`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
+- Status: modified adaptation
+- Upstream author/copyright holder: Matt Pocock
+- Repository owner: `mattpocock`
 
 ### codemap
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/codemap/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`
@@ -243,7 +265,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/mattpocock/skills>
 - Source path: `skills/engineering/code-review/SKILL.md`
-- Pinned revision: `5b15a47f2d7150f545fbcacbfe381787fc0230dc`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Matt Pocock
 - Repository owner: `mattpocock`
@@ -253,6 +276,7 @@ is absent from a pinned copyright notice.
 - Source repository: <https://github.com/Yeachan-Heo/oh-my-codex>
 - Source path: `skills/deep-interview/SKILL.md`
 - Pinned revision: `3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)
 - Repository owner: `Yeachan-Heo`
@@ -261,7 +285,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/deepwork/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`
@@ -270,17 +295,39 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/mattpocock/skills>
 - Source path: `skills/engineering/diagnosing-bugs/SKILL.md`
-- Pinned revision: `5b15a47f2d7150f545fbcacbfe381787fc0230dc`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Matt Pocock
 - Repository owner: `mattpocock`
+
+### implement
+
+- Source repository: <https://github.com/mattpocock/skills>
+- Source path: `skills/engineering/implement/SKILL.md`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
+- Status: modified adaptation
+- Upstream author/copyright holder: Matt Pocock
+- Repository owner: `mattpocock`
+
+### omcs
+
+- Source repository: <https://github.com/DannyMac180/sol-advisor>
+- Source path: `plugins/sol-advisor/skills/orchestration/SKILL.md`
+- Pinned revision: `37b75cad535abdd46531f0227483a8842d045ab8`
+- License: MIT
+- Status: modified adaptation
+- Upstream author/copyright holder: Daniel McAteer
+- Repository owner: `DannyMac180`
 
 ### omcs-orchestrate
 
 - Source repository: <https://github.com/DannyMac180/sol-advisor>
 - Source path: `plugins/sol-advisor/skills/orchestration/SKILL.md`
 - Pinned revision: `37b75cad535abdd46531f0227483a8842d045ab8`
-- Status: modified adaptation
+- License: MIT
+- Status: compatibility alias
 - Upstream author/copyright holder: Daniel McAteer
 - Repository owner: `DannyMac180`
 
@@ -289,6 +336,7 @@ is absent from a pinned copyright notice.
 - Source repository: <https://github.com/Yeachan-Heo/oh-my-codex>
 - Source path: `skills/plan/SKILL.md`
 - Pinned revision: `3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)
 - Repository owner: `Yeachan-Heo`
@@ -297,7 +345,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/mattpocock/skills>
 - Source path: `skills/engineering/research/SKILL.md`
-- Pinned revision: `5b15a47f2d7150f545fbcacbfe381787fc0230dc`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Matt Pocock
 - Repository owner: `mattpocock`
@@ -306,7 +355,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/simplify/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`
@@ -315,7 +365,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/mattpocock/skills>
 - Source path: `skills/engineering/tdd/SKILL.md`
-- Pinned revision: `5b15a47f2d7150f545fbcacbfe381787fc0230dc`
+- Pinned revision: `6654f6b60cd9d5be8b54c6fafe44346dabeb3b76`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Matt Pocock
 - Repository owner: `mattpocock`
@@ -324,7 +375,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/verification-planning/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`
@@ -333,7 +385,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/clonedeps/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`
@@ -342,7 +395,8 @@ is absent from a pinned copyright notice.
 
 - Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>
 - Source path: `src/skills/worktrees/SKILL.md`
-- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`
+- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`
+- License: MIT
 - Status: modified adaptation
 - Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)
 - Repository owner: `alvinunreal`

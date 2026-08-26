@@ -5,11 +5,13 @@ description: Turn settled requirements into an implementation plan with exact fi
 
 # Plan
 
-Use this skill after requirements are settled. If a business decision or acceptance criterion is still material and unresolved, return to clarification rather than hiding it in an assumption.
+## Entry conditions
 
-Inspect the repository before proposing changes: governing instructions, current architecture, relevant callers, tests, configuration ownership, and the working-tree state. Preserve unrelated or concurrent edits. Prefer the smallest design that satisfies the accepted outcome.
+Use after requirements are settled for multi-step, delegated, persistent, or risky work. If a business decision or acceptance criterion is still material and unresolved, return to `context` rather than hiding it in an assumption. Inspect instructions, architecture, callers, tests, configuration ownership, and the working tree.
 
-Write an executable plan whose tasks are coherent vertical slices. Each task should name:
+## Scope limit
+
+Write only the smallest executable plan for the accepted outcome. Preserve concurrent edits; do not use planning to make a material architecture or compatibility decision that belongs in `codebase-design` or needs approval. Each coherent vertical slice names:
 
 - exact files to create, modify, or remove;
 - public interfaces and data contracts;
@@ -19,6 +21,12 @@ Write an executable plan whose tasks are coherent vertical slices. Each task sho
 - ownership, rollback, security, or migration constraints;
 - a focused commit boundary.
 
-Call out dependencies between tasks, irreversible or external effects, secrets boundaries, and any verification that needs explicit user approval. Use pinned versions or exact upstream revisions when reproducibility matters. Separate source checks, local runtime proof, and external-environment proof so the implementer cannot accidentally overstate completion.
+Call out dependencies, irreversible or external effects, secrets boundaries, and approval-gated verification. Separate source, local-runtime, and external-environment proof.
 
-End with measurable acceptance criteria and a completion checklist. Do not begin implementation unless the user requested execution as part of the same task.
+## Exit evidence
+
+End with measurable acceptance criteria, ownership, an ordered task list, verification commands and expected results, and commit boundaries. The plan must make no unapproved external action look routine.
+
+## Next gate
+
+Hand a settled bounded slice to `tdd` and `implement`; retain it under `omcs` when it requires a declared agent packet or risk-gated review.

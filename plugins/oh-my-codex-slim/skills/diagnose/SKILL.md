@@ -5,12 +5,20 @@ description: Diagnose a reproducible bug or performance regression by building a
 
 # Diagnose
 
-Diagnosis determines cause and evidence. Do not implement a fix unless the user's request includes fixing the issue.
+Diagnosis determines cause and evidence.
 
-First build the narrowest red-capable feedback loop that reproduces the reported symptom: a focused test, CLI fixture, request replay, browser assertion, trace, or measurement harness. Redact secrets from commands, output, and captured artifacts. Tighten the loop until it is deterministic enough, fast enough, and specific to the user's failure.
+## Entry conditions
 
-Reproduce the issue and minimize the case while preserving the failure. Then list several ranked, falsifiable hypotheses. For each one, state the observation that would support or reject it. Probe one variable at a time using a debugger, targeted instrumentation, `omcs_diagnostics`, `omcs_symbols`, or `omcs_references` when those tools are available. Do not fetch missing tooling automatically.
+Use for a reproducible defect or performance regression. Build the narrowest red-capable loop: focused test, fixture, replay, browser assertion, trace, or measurement. Redact secrets and tighten it until it is specific and repeatable.
 
-For performance work, establish a repeatable baseline before changing code. For intermittent failures, improve the reproduction rate and record the seed, timing, or load conditions.
+## Scope limit
 
-Report the confirmed cause, ruled-out hypotheses, exact reproduction command, evidence, and remaining uncertainty. If a fix was also requested, convert the minimized case into a regression test, observe it fail, apply the smallest correction, rerun the original loop, and remove temporary instrumentation before completion.
+Minimize the failure, rank falsifiable hypotheses, and probe one variable at a time. Establish a performance baseline or intermittent reproduction conditions before changing code. Do not implement a fix unless requested or fetch missing tooling automatically.
+
+## Exit evidence
+
+Report confirmed cause, ruled-out hypotheses, exact reproduction, evidence, and remaining uncertainty. If fixing was requested, preserve the minimized case as a regression seam and remove temporary instrumentation.
+
+## Next gate
+
+Hand a confirmed fix seam to `tdd` and `implement`; return an unresolved material behavior choice to `context`.

@@ -24,7 +24,8 @@ function supportingNotice(spec: (typeof supportingNotices)[number]): string {
 		`### ${spec.heading}`,
 		"- Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>",
 		`- Source path: \`${spec.path}\``,
-		"- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`",
+		"- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`",
+		"- License: MIT",
 		"- Status: modified adaptation",
 		"- Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)",
 		"- Repository owner: `alvinunreal`",
@@ -47,16 +48,8 @@ async function fixtureRepository(): Promise<string> {
 		await writeFile(join(source, "SKILL.md"), bytes);
 		await writeFile(join(plugin, "SKILL.md"), bytes);
 	}
-	const primaryNotices = SKILL_CATALOG.map((skill) => [
-		`### ${skill.name}`,
-		"- Source repository: <https://github.com/example/example>",
-		"- Source path: `skills/example/SKILL.md`",
-		"- Pinned revision: `0000000000000000000000000000000000000000`",
-		"- Status: modified adaptation",
-		"- Upstream author/copyright holder: Example",
-		"- Repository owner: `example`",
-	].join("\n")).join("\n\n");
-	await writeFile(join(root, "THIRD_PARTY_NOTICES.md"), `${primaryNotices}\n\n${supportingNotices.map(supportingNotice).join("\n\n")}\n`);
+	const notices = await readFile(join(process.cwd(), "THIRD_PARTY_NOTICES.md"), "utf8");
+	await writeFile(join(root, "THIRD_PARTY_NOTICES.md"), notices);
 	return root;
 }
 
@@ -206,7 +199,8 @@ describe("skill discovery synchronization", () => {
 		const corruptions = [
 			["repository", "- Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>", "- Source repository: <https://github.com/example/wrong>"],
 			["source path", "PATH_PLACEHOLDER", "- Source path: `wrong/SKILL.md`"],
-			["revision", "- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`", "- Pinned revision: `ffffffffffffffffffffffffffffffffffffffff`"],
+			["revision", "- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`", "- Pinned revision: `ffffffffffffffffffffffffffffffffffffffff`"],
+			["license", "- License: MIT", "- License: Wrong"],
 			["status", "- Status: modified adaptation", "- Status: unmodified"],
 			["author", "- Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)", "- Upstream author/copyright holder: Wrong"],
 			["owner", "- Repository owner: `alvinunreal`", "- Repository owner: `wrong`"],

@@ -55,7 +55,8 @@ const supportingNoticeExpectations: readonly NoticeExpectation[] = [
 		fields: [
 			{ name: "repository", line: "- Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>" },
 			{ name: "source path", line: "- Source path: `src/skills/clonedeps/SKILL.md`" },
-			{ name: "revision", line: "- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`" },
+			{ name: "revision", line: "- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`" },
+			{ name: "license", line: "- License: MIT" },
 			{ name: "status", line: "- Status: modified adaptation" },
 			{ name: "author", line: "- Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)" },
 			{ name: "owner", line: "- Repository owner: `alvinunreal`" },
@@ -66,13 +67,32 @@ const supportingNoticeExpectations: readonly NoticeExpectation[] = [
 		fields: [
 			{ name: "repository", line: "- Source repository: <https://github.com/alvinunreal/oh-my-opencode-slim>" },
 			{ name: "source path", line: "- Source path: `src/skills/worktrees/SKILL.md`" },
-			{ name: "revision", line: "- Pinned revision: `4940f73515d2969c50536fa1ec30a9ef5ee86741`" },
+			{ name: "revision", line: "- Pinned revision: `aafd687ac8af2ef5dd50de52c7ab817c030ea6c2`" },
+			{ name: "license", line: "- License: MIT" },
 			{ name: "status", line: "- Status: modified adaptation" },
 			{ name: "author", line: "- Upstream author/copyright holder: Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)" },
 			{ name: "owner", line: "- Repository owner: `alvinunreal`" },
 		],
 	},
 ];
+const primaryNoticeExpectations: Readonly<Record<string, readonly string[]>> = {
+	"ai-slop-cleaner": ["Yeachan-Heo/oh-my-codex", "skills/ai-slop-cleaner/SKILL.md", "3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2", "Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)", "Yeachan-Heo", "modified adaptation"],
+	"codebase-design": ["mattpocock/skills", "skills/engineering/codebase-design/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	codemap: ["alvinunreal/oh-my-opencode-slim", "src/skills/codemap/SKILL.md", "aafd687ac8af2ef5dd50de52c7ab817c030ea6c2", "Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)", "alvinunreal", "modified adaptation"],
+	"code-review": ["mattpocock/skills", "skills/engineering/code-review/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	context: ["mattpocock/skills", "skills/engineering/grill-with-docs/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	"deep-interview": ["Yeachan-Heo/oh-my-codex", "skills/deep-interview/SKILL.md", "3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2", "Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)", "Yeachan-Heo", "modified adaptation"],
+	deepwork: ["alvinunreal/oh-my-opencode-slim", "src/skills/deepwork/SKILL.md", "aafd687ac8af2ef5dd50de52c7ab817c030ea6c2", "Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)", "alvinunreal", "modified adaptation"],
+	diagnose: ["mattpocock/skills", "skills/engineering/diagnosing-bugs/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	implement: ["mattpocock/skills", "skills/engineering/implement/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	omcs: ["DannyMac180/sol-advisor", "plugins/sol-advisor/skills/orchestration/SKILL.md", "37b75cad535abdd46531f0227483a8842d045ab8", "Daniel McAteer", "DannyMac180", "modified adaptation"],
+	"omcs-orchestrate": ["DannyMac180/sol-advisor", "plugins/sol-advisor/skills/orchestration/SKILL.md", "37b75cad535abdd46531f0227483a8842d045ab8", "Daniel McAteer", "DannyMac180", "compatibility alias"],
+	plan: ["Yeachan-Heo/oh-my-codex", "skills/plan/SKILL.md", "3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2", "Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)", "Yeachan-Heo", "modified adaptation"],
+	research: ["mattpocock/skills", "skills/engineering/research/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	simplify: ["alvinunreal/oh-my-opencode-slim", "src/skills/simplify/SKILL.md", "aafd687ac8af2ef5dd50de52c7ab817c030ea6c2", "Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)", "alvinunreal", "modified adaptation"],
+	tdd: ["mattpocock/skills", "skills/engineering/tdd/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
+	verification: ["alvinunreal/oh-my-opencode-slim", "src/skills/verification-planning/SKILL.md", "aafd687ac8af2ef5dd50de52c7ab817c030ea6c2", "Alvin (owner/contributor metadata; the pinned MIT notice names no individual holder)", "alvinunreal", "modified adaptation"],
+};
 const forbiddenTerms = [
 	["Lazy", "Codex"],
 	["tm", "ux"],
@@ -410,17 +430,18 @@ export async function verifySkills(options: VerifySkillsOptions = {}): Promise<v
 		if (frontmatter.description !== skill.description) fail(`${skill.name} description differs from the catalog`);
 		const normalized = canonical.toLowerCase();
 		if (/\bopencode\b/i.test(canonical) || forbiddenTerms.some((term) => normalized.includes(term))) fail(`${skill.name} contains prohibited runtime vocabulary`);
-		const entry = noticeEntry(notices, skill);
-		for (const pattern of [
-			/Source repository: <https:\/\/github\.com\/[^>]+>/,
-			/Source path: `[^`]+\/SKILL\.md`/,
-			/Pinned revision: `[0-9a-f]{40}`/,
-			/Status: (?:modified adaptation|original synthesis)/,
-			/Upstream author\/copyright holder: \S/,
-			/Repository owner: `[^`]+`/,
-		]) {
-			if (!pattern.test(entry)) fail(`${skill.name} provenance is incomplete`);
-		}
+		const [repository, path, revision, author, owner, status] = primaryNoticeExpectations[skill.name] ?? fail(`${skill.name} has no provenance expectation`);
+		const expected = [
+			`- Source repository: <https://github.com/${repository}>`,
+			`- Source path: \`${path}\``,
+			`- Pinned revision: \`${revision}\``,
+			"- License: MIT",
+			`- Status: ${status}`,
+			`- Upstream author/copyright holder: ${author}`,
+			`- Repository owner: \`${owner}\``,
+		];
+		const lines = new Set(noticeEntry(notices, skill).split("\n"));
+		for (const line of expected) if (!lines.has(line)) fail(`${skill.name} provenance is missing or incorrect: ${line}`);
 	}
 	for (const expectation of supportingNoticeExpectations) validateNoticeExpectation(notices, expectation);
 	process.stdout.write(`Verified ${SKILL_CATALOG.length} attributed skills and identical plugin discovery resources.\n`);

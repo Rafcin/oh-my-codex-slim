@@ -5,11 +5,15 @@ description: Build or refresh a concise repository map when a codebase's modules
 
 # Codemap
 
-Produce a factual, compact map of the repository without changing source files unless the user explicitly asks to save the result.
+## Entry conditions
 
-Start with governing instructions and top-level manifests. Use `rg --files` to inventory the tree and `rg` to trace entry points, imports, commands, configuration, tests, and generated boundaries. When available, use `omcs_symbols` and `omcs_references` to confirm symbol relationships; treat an unavailable language server as a limitation, not a reason to fetch one.
+Use when modules, entry points, or dependency boundaries must be understood. Produce a factual compact map without source edits unless asked to save it. Start with instructions and top-level manifests; use `rg --files` and `rg` to trace entry points, imports, commands, configuration, tests, and generated boundaries.
 
-Follow only the paths needed for the user's question. Distinguish authored source, generated output, fixtures, vendored code, and runtime state. Confirm important flows from actual imports or call sites rather than directory names alone.
+## Scope limit
+
+Follow only paths needed for the question. Distinguish authored source, generated output, fixtures, vendored code, and runtime state. Confirm flows from imports or call sites, not directory names. Treat unavailable symbol tooling as a limitation, not a reason to fetch it.
+
+## Exit evidence
 
 Report:
 
@@ -20,6 +24,10 @@ Report:
 - relevant tests and verification commands;
 - unresolved or inferred relationships, labeled clearly.
 
-Keep the map skimmable and link each conclusion to concrete repository paths. Do not turn the map into an architecture proposal unless the user also asked for redesign advice.
+Keep the map skimmable and link conclusions to paths. Do not turn it into an architecture proposal.
 
 When documentation is insufficient and the user needs dependency implementation source, read [Clone dependency source](references/clone-dependency.md) before using the OMCS clone tool.
+
+## Next gate
+
+Hand an ambiguity to `context`, a seam decision to `codebase-design`, or a reproducible defect to `diagnose`.

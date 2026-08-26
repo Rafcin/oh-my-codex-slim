@@ -5,12 +5,20 @@ description: Reduce accidental complexity in working code when behavior must rem
 
 # Simplify
 
-Preserve behavior and public contracts. This skill is for a requested simplification, not feature development or an unsolicited architectural rewrite.
+## Entry conditions
 
-Establish a behavior lock with focused tests and inspect real callers before editing. Identify the smallest source of accidental complexity: duplicate logic, unnecessary indirection, fragmented control flow, overly broad types, speculative configurability, or an abstraction that obscures rather than isolates policy.
+Use for a requested behavior-preserving simplification after behavior is understood. Establish a behavior lock and inspect real callers. Identify the smallest accidental complexity: duplication, indirection, fragmented flow, broad types, speculative configuration, or an obscuring abstraction.
 
-Prefer deletion, direct data flow, existing language features, and local names that expose intent. Keep a boundary when it protects ownership, side effects, compatibility, or testing. Do not collapse layers simply to reduce line count, and do not add a new dependency to perform a local cleanup.
+## Scope limit
 
-Make one coherent change at a time and rerun the focused behavior lock. Then run the relevant type, lint, and baseline test gates. Review the final diff for semantic drift and unrelated formatting.
+Prefer deletion, direct data flow, existing language features, and local names. Keep a boundary that protects ownership, side effects, compatibility, or testing. Do not collapse layers merely to reduce lines, add a dependency for a local cleanup, or broaden into architecture work.
 
-Report what became simpler, why the preserved boundaries remain, the commands run, and any risk that prevented further reduction.
+Make one coherent change at a time and rerun the behavior lock, relevant static gates, and baseline tests.
+
+## Exit evidence
+
+Report what became simpler, preserved boundaries, commands, and any risk that prevented further reduction.
+
+## Next gate
+
+Return to `verification`; use `codebase-design` instead when the requested simplification changes a seam or interface.

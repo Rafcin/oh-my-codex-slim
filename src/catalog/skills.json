@@ -1,7 +1,11 @@
 [
   {
     "name": "ai-slop-cleaner",
-    "description": "Clean a bounded scope only when the user explicitly identifies AI-generated, slop, or noisy-generated code patterns."
+    "description": "Use when an OMCS thorough, audit, or full route reaches pre-review changed-file inspection, or the user explicitly identifies AI-generated or slop code."
+  },
+  {
+    "name": "codebase-design",
+    "description": "Use when a module boundary, interface, domain model, or architecture change needs a durable design decision before implementation."
   },
   {
     "name": "codemap",
@@ -10,6 +14,10 @@
   {
     "name": "code-review",
     "description": "Review a completed code change against its stated requirements and repository standards without implementing fixes."
+  },
+  {
+    "name": "context",
+    "description": "Use when a material product or engineering decision remains unclear after repository evidence has been inspected."
   },
   {
     "name": "deep-interview",
@@ -24,8 +32,16 @@
     "description": "Diagnose a reproducible bug or performance regression by building a tight feedback loop and testing ranked hypotheses before proposing a fix."
   },
   {
+    "name": "implement",
+    "description": "Use when a bounded implementation task has settled requirements, declared ownership, and a credible behavior seam."
+  },
+  {
+    "name": "omcs",
+    "description": "Use when a substantial engineering task needs OMCS risk-gated orchestration, including when the user says use OMCS to solve this issue."
+  },
+  {
     "name": "omcs-orchestrate",
-    "description": "Choose and run an OMCS route for a substantial task when risk determines whether work stays solo, is delegated, audited, or fully reviewed."
+    "description": "Use when an existing workflow invokes the legacy OMCS orchestration skill name for a substantial engineering task."
   },
   {
     "name": "plan",

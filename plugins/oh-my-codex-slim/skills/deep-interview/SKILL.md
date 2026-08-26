@@ -5,13 +5,17 @@ description: Clarify an underspecified product or engineering request through on
 
 # Deep Interview
 
-Use this workflow when the outcome, boundaries, or acceptance criteria are genuinely unclear. Skip it when the request is already execution-ready or the user explicitly asks to proceed with stated assumptions.
+## Entry conditions
 
-Inspect discoverable facts first: governing instructions, nearby documentation, current behavior, relevant code, and existing plans. Do not ask the user to supply repository facts you can establish safely. If sources conflict, present the conflict precisely and ask which behavior should govern.
+Use only when outcome, boundaries, or acceptance criteria are genuinely unclear. Skip execution-ready work or an explicit request to proceed with stated assumptions. Inspect discoverable facts first and do not ask the user for repository facts that can be established safely.
 
-Ask one high-leverage question at a time. Resolve intent and desired outcome before implementation detail, then scope, non-goals, constraints, success criteria, and decisions that still require user approval. Pressure-test vague answers with a concrete example, counterexample, hidden assumption, or tradeoff. Do not continue merely to reach a fixed number of rounds.
+## Scope limit
 
-When the request is ready, summarize:
+Ask one high-leverage question at a time: outcome before implementation detail, then scope, exclusions, constraints, success criteria, and approval decisions. If sources conflict, state the conflict precisely. Do not continue to reach a fixed round count or begin planning or implementation inside this interview.
+
+## Exit evidence
+
+When ready, summarize:
 
 - the problem and observable outcome;
 - in-scope behavior and explicit non-goals;
@@ -20,4 +24,8 @@ When the request is ready, summarize:
 - what Codex may decide and what still requires confirmation;
 - relevant technical context without prematurely choosing an implementation.
 
-End at the handoff boundary. Offer planning or execution only after the user accepts the clarified intent; do not silently begin either inside the interview.
+End at the handoff boundary.
+
+## Next gate
+
+After clarified intent is accepted, use `context` for a durable constraint, `codebase-design` for a seam decision, or `plan` for execution planning.

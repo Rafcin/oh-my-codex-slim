@@ -5,10 +5,18 @@ description: Investigate a technical question using primary sources when current
 
 # Research
 
-Define the question, decision it informs, scope, and freshness requirement before collecting sources. Inspect repository evidence first when the answer depends on local implementation.
+## Entry conditions
 
-Prefer primary sources: official documentation, specifications, standards, first-party release notes, source code at an exact revision, and authoritative APIs. Browse when facts may have changed or the user asks for current information. For technical claims, do not rely on secondary summaries when a primary source is available.
+Use when current or unfamiliar external behavior must inform a decision. Define the question, decision, scope, and freshness requirement; inspect repository evidence first when local implementation matters. Prefer primary documentation, specifications, release notes, exact-revision source, and authoritative APIs.
 
-Record source title, direct link or repository path, version or revision, and access date when currency matters. Separate verified facts from inference and unresolved conflict. Quote sparingly; paraphrase the source's actual contract without expanding it.
+## Scope limit
 
-Return a concise answer organized around the user's decision, with citations next to the claims they support. If the task requires an artifact, save it under the repository's existing research convention and say where; otherwise do not create persistent files. Never include credentials or secret-bearing output in research notes.
+Do not turn secondary summaries into technical authority when a primary source exists. Record title, direct link or repository path, version or revision, and access date when currency matters. Separate fact, inference, and unresolved conflict; quote sparingly.
+
+## Exit evidence
+
+Return a concise decision-oriented answer with citations beside supporting claims. Save an artifact only when requested and in the repository convention; never include credentials or secret-bearing output.
+
+## Next gate
+
+Hand the verified constraints to `context`, `codebase-design`, or `plan`; run `verification` later for any implementation claim.

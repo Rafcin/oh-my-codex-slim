@@ -5,14 +5,22 @@ description: Execute an already-approved, multi-step implementation plan with su
 
 # Deepwork
 
-Use this skill only when an implementation plan is already approved and the user asked for end-to-end execution. The plan and its referenced specification are authoritative.
+## Entry conditions
 
-Before editing, confirm the repository state, applicable instructions, owned paths, and the first incomplete task. Maintain a durable progress record when execution spans many tasks. Do not reset, stash, or overwrite unrelated work.
+Use only for an approved multi-step plan that the user asks to execute end-to-end. The plan and specification are authoritative. Confirm repository state, instructions, owned paths, and the first incomplete task; maintain a durable progress record for long work.
 
-Execute one task at a time using test-driven vertical slices: write the behavior test, observe the expected failure, implement the smallest passing change, then refactor while green. Run focused checks after each slice and the task's baseline checks before its commit. Keep commits narrow and attributable.
+## Scope limit
 
-Use OMCS routing only when the risk policy calls for it. Delegated work receives explicit objective, ownership, context, constraints, and evidence requirements. Verify worker claims from the actual diff and fresh commands. A review finding that changes implementation invalidates the earlier verdict and requires fresh verification.
+Execute one task at a time with test-driven vertical slices and narrow attributable commits. Do not reset, stash, overwrite unrelated work, or widen a task because it is nearby. Delegate only under the declared OMCS route with exclusive write ownership.
 
-Continue through safe in-scope work without status prompts. Stop only for a genuinely destructive or irreversible action, security-sensitive authorization, an external side effect that requires confirmation, or a plan defect with no grounded path forward. Report the exact verification stage and any approval-gated proof still outstanding.
+Verify worker claims from the actual diff and fresh commands. A correction invalidates earlier verification and review.
+
+## Exit evidence
+
+Report completed plan steps, owned changes, focused and baseline evidence, current verification stage, and approval-gated proof still outstanding. Stop only for destructive or irreversible action, security-sensitive authorization, required external confirmation, or a plan defect with no grounded path.
 
 For an explicitly isolated or parallel Git lane, read [Worktree lanes](references/worktrees.md) before creating, integrating, or removing a worktree.
+
+## Next gate
+
+Run `verification`, then the route-required fresh `code-review`; return a material plan defect to `context` or `plan`.

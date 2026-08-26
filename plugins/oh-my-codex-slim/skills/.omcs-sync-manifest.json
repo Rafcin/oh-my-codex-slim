@@ -1,19 +1,23 @@
 {
   "version": 1,
   "files": {
-    "ai-slop-cleaner/SKILL.md": "022f4ec8ccce5e99521b7de0bf13d7a8756bd7112503ee8442b505c1d304b36f",
-    "code-review/SKILL.md": "10f52e903cd0593c6d0c023a756417c72a036fda9f98a4c937ce11cda02cbcea",
+    "ai-slop-cleaner/SKILL.md": "7c580ab1d68b7981c42dfc014be10a2085b775488a63b2d250d2d55a9befdc96",
+    "code-review/SKILL.md": "39a0ddd011165f14583ffdb43eb66f4a3919b133b6001341423c527dabfe31c0",
+    "codebase-design/SKILL.md": "1697323d96e036a4ca39ac7eec91ccfd71a4ce3f215596d393cd7467826318fb",
     "codemap/references/clone-dependency.md": "a59ea60f198d6c50a87d2bb55ca816074565e01aff7ecf7391f2a0b7ced8b4a4",
-    "codemap/SKILL.md": "d9378eca03a5cc713ef73909ef267a0ecb4fdd64d117a4492a52ac7428054b3b",
-    "deep-interview/SKILL.md": "5ec6b1e1d919c9d520c91b5fe981c8deda218eca5687c4284b253f6c6d2d1f52",
+    "codemap/SKILL.md": "544d5696a252f679647a0cef794b1f086f36f5bfd9b00523144fa1bff232e51a",
+    "context/SKILL.md": "d9cc5bfaa0c66574967521ee94a27c8d33cdf200e526f219493ee4b29a52510d",
+    "deep-interview/SKILL.md": "1f48fb6cb8ed0039efc47b1924cea4d16137566549edc6f066c01c55d804cbdf",
     "deepwork/references/worktrees.md": "ddc8824075ff4ebb75b312465b74dc4d340b7ede49c15de55187bd48f3e5c3d0",
-    "deepwork/SKILL.md": "60243e7e80170dc5403f44c10422b80a080e7a3257b6435ea935e86a19d80252",
-    "diagnose/SKILL.md": "b2dcbe10b3d0c4afbed7771d9834e529ff165e7cd1b9b6e58183a5e4c2c0c4e5",
-    "omcs-orchestrate/SKILL.md": "47ef4e8e39796feb90e2dd818de45d2e49719245ad84ce9a6d92987781221a0d",
-    "plan/SKILL.md": "1d19c8ea12ee05fcacf9ad16a1d6e0343c218fb78e192e9d46e6a17981f43dbc",
-    "research/SKILL.md": "7ee4027b09ceeadd5524ad80f024e868e9e107c1621d597fca8549125365dede",
-    "simplify/SKILL.md": "1b8d0f523c8505101f5398f5908b14e20126e892b2a5d2abc92123710ad2f8c2",
-    "tdd/SKILL.md": "3aff2db03098451358af3eb47f8040641eefbebe16ff7ee64b9e11c66607583e",
-    "verification/SKILL.md": "53bb9af0e1c5edd609856c11957f21ba5dea6c2837c8724b9b8ecd835d073834"
+    "deepwork/SKILL.md": "fa584add9a4b95e302c43545e395c09de39a808857cd78783d74f7829b5d4ba5",
+    "diagnose/SKILL.md": "bcf12114253b9b13af6a176faed0ed6fc76ca45c3d0fa178bf6999844939b1b9",
+    "implement/SKILL.md": "4deb00779451fdc14b891ba330fbf1169b4f8decb88cf36063b7b6ccfefc8936",
+    "omcs-orchestrate/SKILL.md": "ec3e8d0b20512e32f1d9cd2b4fb95aeeecfd1cd3747df57dd8f17c8434579e96",
+    "omcs/SKILL.md": "4236f8731e0c1f8ddb0738b1e2cc4efe652a53ff4b5dc018f547ad54d5940e6b",
+    "plan/SKILL.md": "638bc3e36f68bedb9bc87df0edd4df222d79f1db0afa1676bd7d41ffef56a932",
+    "research/SKILL.md": "c37e4f7a873818fd73cbdfcf4bdea6b13f1d314a2dcada4f8cfe00d67f4d466f",
+    "simplify/SKILL.md": "a534a0390f4804dc8c20de8d1244d7a915be9dd679371123a9a88bfeefe52343",
+    "tdd/SKILL.md": "e47cf140d4de9195cae84c825ed71297dc282e95c0a93f5414743d1b70cb9b59",
+    "verification/SKILL.md": "c9992d8983f9e5f94862fc8a569c013f12cebaed7facc0daba1ff3cc680cf9ab"
   }
 }
