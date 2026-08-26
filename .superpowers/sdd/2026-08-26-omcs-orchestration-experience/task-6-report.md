@@ -40,3 +40,13 @@ The focused catalog/sync suite passed 14 tests. No external model, provider, bil
 ## Remaining boundary
 
 The controller forbade subagent dispatch for this task, so no fresh independent agent review was performed here. Local tests and source inspection prove only the checked-in skill/catalog behavior; they do not prove provider execution or release acceptance.
+
+## Attribution correction
+
+Review found the Oh My OpenAgent behavioral-reference notice and source index incorrectly said that no personal author name was published. The exact pinned `package.json` at `b48ab1086b338921ccd99a11183f91eefbb169f2` declares `author: "YeonGyu-Kim"` and `license: "SUL-1.0"`.
+
+RED: new focused tests failed because both documents lacked `SUL-1.0` and the exact package-author metadata, while the verifier did not protect that reference section.
+
+GREEN: both documents now state `SUL-1.0 (Sustainable Use License)`, identify `YeonGyu-Kim` as the pinned package author, and explicitly avoid asserting a separate named copyright/licensor. `verify-skills` now validates every behavioral-reference notice field exactly, and a fixture test proves a corrupted package-author line is rejected.
+
+Passed after the correction: focused catalog/sync suite (16 tests), `npm run verify:skills`, `npm test` (77 tests), `npm run lint`, and `git diff --check`.

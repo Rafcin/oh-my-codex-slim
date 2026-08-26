@@ -226,4 +226,15 @@ describe("skill discovery synchronization", () => {
 			}
 		}
 	});
+
+	it("rejects a corrupted Oh My OpenAgent behavioral-reference attribution", async () => {
+		const root = await fixtureRepository();
+		await syncDiscoveryCopies({ repositoryRoot: root });
+		const noticePath = join(root, "THIRD_PARTY_NOTICES.md");
+		const notices = await readFile(noticePath, "utf8");
+		const author = "- Package author: YeonGyu-Kim (pinned package.json)";
+		assert.ok(notices.includes(author));
+		await writeFile(noticePath, notices.replace(author, "- Package author: Wrong"));
+		await assert.rejects(verifySkills({ repositoryRoot: root }), /Oh My OpenAgent boundary.*package author/i);
+	});
 });

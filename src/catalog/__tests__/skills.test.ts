@@ -167,4 +167,16 @@ describe("lean skill catalog", () => {
 			assert.ok(entry.includes(`Repository owner: \`${owner}\``));
 		}
 	});
+
+	it("attributes the Oh My OpenAgent behavioral reference to its pinned package metadata", () => {
+		const notices = readFileSync(join(repositoryRoot, "THIRD_PARTY_NOTICES.md"), "utf8");
+		const sourceIndex = readFileSync(join(repositoryRoot, "docs", "upstream-sources.md"), "utf8");
+		for (const document of [notices, sourceIndex]) {
+			assert.match(document, /code-yeongyu\/oh-my-openagent/);
+			assert.match(document, /b48ab1086b338921ccd99a11183f91eefbb169f2/);
+			assert.match(document, /License: SUL-1\.0 \(Sustainable Use License\)/);
+			assert.match(document, /Package author: YeonGyu-Kim \(pinned package\.json\)/);
+			assert.match(document, /Copyright\/licensor: no separately named holder published in inspected package metadata/);
+		}
+	});
 });

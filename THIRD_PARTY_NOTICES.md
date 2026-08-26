@@ -210,9 +210,10 @@ Adapted files must retain the applicable notice.
 - Source repository: <https://github.com/code-yeongyu/oh-my-openagent>
 - Source path(s): no source text or prompt copied; repository-level behavioral reference only
 - Pinned revision: `b48ab1086b338921ccd99a11183f91eefbb169f2`
-- License: Sustainable Use License
+- License: SUL-1.0 (Sustainable Use License)
 - Status: behavioral reference only; no adaptation or inclusion
-- Upstream author/copyright holder: no personal name published in the inspected repository metadata
+- Package author: YeonGyu-Kim (pinned package.json)
+- Copyright/licensor: no separately named holder published in inspected package metadata
 - Repository owner: `code-yeongyu`
 
 ## Skill-level provenance

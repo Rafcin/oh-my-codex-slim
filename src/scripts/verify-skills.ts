@@ -75,6 +75,19 @@ const supportingNoticeExpectations: readonly NoticeExpectation[] = [
 		],
 	},
 ];
+const behavioralReferenceNoticeExpectation: NoticeExpectation = {
+	heading: "Oh My OpenAgent boundary",
+	fields: [
+		{ name: "repository", line: "- Source repository: <https://github.com/code-yeongyu/oh-my-openagent>" },
+		{ name: "source path", line: "- Source path(s): no source text or prompt copied; repository-level behavioral reference only" },
+		{ name: "revision", line: "- Pinned revision: `b48ab1086b338921ccd99a11183f91eefbb169f2`" },
+		{ name: "license", line: "- License: SUL-1.0 (Sustainable Use License)" },
+		{ name: "status", line: "- Status: behavioral reference only; no adaptation or inclusion" },
+		{ name: "package author", line: "- Package author: YeonGyu-Kim (pinned package.json)" },
+		{ name: "copyright licensor", line: "- Copyright/licensor: no separately named holder published in inspected package metadata" },
+		{ name: "owner", line: "- Repository owner: `code-yeongyu`" },
+	],
+};
 const primaryNoticeExpectations: Readonly<Record<string, readonly string[]>> = {
 	"ai-slop-cleaner": ["Yeachan-Heo/oh-my-codex", "skills/ai-slop-cleaner/SKILL.md", "3ad79a8a6fe6e95fdbb8c00e40716fffe4011ce2", "Yeachan Heo (author metadata; the pinned source publishes no separate named copyright line)", "Yeachan-Heo", "modified adaptation"],
 	"codebase-design": ["mattpocock/skills", "skills/engineering/codebase-design/SKILL.md", "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76", "Matt Pocock", "mattpocock", "modified adaptation"],
@@ -386,17 +399,17 @@ function noticeEntry(notices: string, skill: SkillDefinition): string {
 	return notices.slice(start, end === -1 ? undefined : end);
 }
 
-function exactNoticeSection(notices: string, expectation: NoticeExpectation): string {
-	const marker = `### ${expectation.heading}\n`;
+function exactNoticeSection(notices: string, expectation: NoticeExpectation, headingLevel = "###"): string {
+	const marker = `${headingLevel} ${expectation.heading}\n`;
 	const start = notices.indexOf(marker);
 	if (start === -1) fail(`${expectation.heading} section is missing`);
 	if (notices.indexOf(marker, start + marker.length) !== -1) fail(`${expectation.heading} section is duplicated`);
-	const end = notices.indexOf("\n### ", start + marker.length);
+	const end = notices.indexOf(`\n${headingLevel} `, start + marker.length);
 	return notices.slice(start, end === -1 ? undefined : end);
 }
 
-function validateNoticeExpectation(notices: string, expectation: NoticeExpectation): void {
-	const lines = new Set(exactNoticeSection(notices, expectation).split("\n"));
+function validateNoticeExpectation(notices: string, expectation: NoticeExpectation, headingLevel?: string): void {
+	const lines = new Set(exactNoticeSection(notices, expectation, headingLevel).split("\n"));
 	for (const field of expectation.fields) {
 		if (!lines.has(field.line)) fail(`${expectation.heading} ${field.name} is missing or incorrect`);
 	}
@@ -444,6 +457,7 @@ export async function verifySkills(options: VerifySkillsOptions = {}): Promise<v
 		for (const line of expected) if (!lines.has(line)) fail(`${skill.name} provenance is missing or incorrect: ${line}`);
 	}
 	for (const expectation of supportingNoticeExpectations) validateNoticeExpectation(notices, expectation);
+	validateNoticeExpectation(notices, behavioralReferenceNoticeExpectation, "##");
 	process.stdout.write(`Verified ${SKILL_CATALOG.length} attributed skills and identical plugin discovery resources.\n`);
 }
 
