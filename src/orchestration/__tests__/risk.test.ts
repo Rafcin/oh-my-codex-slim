@@ -3,15 +3,18 @@ import { describe, it } from "node:test";
 import { selectRoute } from "../risk.js";
 
 describe("Sol-guided routing policy", () => {
-	it("keeps councils read-only and opt-in ahead of implementation routing", () => {
+	it("keeps council requests outside delivery routing", () => {
 		assert.deepEqual(selectRoute({ settled: true, blastRadius: "wide", reviewRequired: true, visual: true, councilRequested: true }), {
-			mode: "council",
+			mode: "full",
+			implementer: "omcs_designer",
+			reviewer: "omcs_reviewer",
 		});
 	});
 
-	it("keeps unsettled work with the architect", () => {
+	it("keeps unsettled reviewed work architect-owned with a fresh audit", () => {
 		assert.deepEqual(selectRoute({ settled: false, blastRadius: "narrow", reviewRequired: true, delegable: true }), {
-			mode: "solo",
+			mode: "audit",
+			reviewer: "omcs_reviewer",
 		});
 	});
 

@@ -1,4 +1,5 @@
-export type RouteMode = "solo" | "delegate" | "audit" | "full" | "council";
+/** The only delivery routes. Council is handled as an advisory policy overlay. */
+export type RouteMode = "solo" | "delegate" | "audit" | "full";
 export type BlastRadius = "narrow" | "moderate" | "wide";
 
 export interface RiskInput {
@@ -6,6 +7,7 @@ export interface RiskInput {
 	blastRadius: BlastRadius;
 	reviewRequired: boolean;
 	visual?: boolean;
+	/** Retained for callers that record a request; it never changes a delivery route. */
 	councilRequested?: boolean;
 	delegable?: boolean;
 }
@@ -17,8 +19,9 @@ export interface RouteDecision {
 }
 
 export function selectRoute(input: RiskInput): RouteDecision {
-	if (input.councilRequested) return { mode: "council" };
-	if (!input.settled) return { mode: "solo" };
+	if (!input.settled) {
+		return input.reviewRequired ? { mode: "audit", reviewer: "omcs_reviewer" } : { mode: "solo" };
+	}
 	if (input.delegable === false) {
 		return input.reviewRequired ? { mode: "audit", reviewer: "omcs_reviewer" } : { mode: "solo" };
 	}
