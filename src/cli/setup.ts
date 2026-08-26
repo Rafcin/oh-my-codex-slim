@@ -10,6 +10,7 @@ import {
 	type ManagedFilesDependencies,
 } from "../config/managed-files.js";
 import { mergeConfig, OMCS_LIFECYCLE_MARKER } from "../config/generator.js";
+import { findProjectRoot } from "../config/omcs-config.js";
 import { agentManagedFileWrites, managedConflictPaths } from "../agents/install.js";
 
 export interface SetupOptions {
@@ -33,9 +34,13 @@ function isMissing(error: unknown): boolean {
 		&& (error as { code?: unknown }).code === "ENOENT";
 }
 
-function selectedCodexHome(options: SetupOptions): string {
+async function selectedCodexHome(options: SetupOptions): Promise<string> {
 	if (options.codexHome) return resolveCodexHome({ codexHome: options.codexHome });
-	if (options.scope === "project") return join(options.projectRoot ?? process.cwd(), ".codex");
+	if (options.scope === "project") {
+		const projectRoot = await findProjectRoot(options.projectRoot ?? process.cwd());
+		if (!projectRoot) throw new Error("OMCS project setup requires a Git root");
+		return join(projectRoot, ".codex");
+	}
 	return resolveCodexHome();
 }
 
@@ -73,7 +78,7 @@ export async function setup(
 	options: SetupOptions = {},
 	dependencies: ManagedFilesDependencies = {},
 ): Promise<SetupReport> {
-	const codexHome = await canonicalizeCodexHome(selectedCodexHome(options));
+	const codexHome = await canonicalizeCodexHome(await selectedCodexHome(options));
 	const reservedConflicts = await reservedAgentConflicts(codexHome);
 
 	const currentConfig = await readManagedFile(codexHome, "config.toml");

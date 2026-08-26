@@ -109,12 +109,16 @@ describe("omcs setup ownership", () => {
 		}
 	});
 
-	it("uses a project-local Codex home when project scope is selected", async () => {
+	it("discovers the Git root before selecting a project-local Codex home", async () => {
 		const projectRoot = await temporaryDirectory("omcs-project-scope-");
+		const nestedWorkingDirectory = join(projectRoot, "packages", "widget");
 		try {
-			const report = await setup({ scope: "project", projectRoot, dryRun: false });
+			await mkdir(join(projectRoot, ".git"));
+			await mkdir(nestedWorkingDirectory, { recursive: true });
+			const report = await setup({ scope: "project", projectRoot: nestedWorkingDirectory, dryRun: false });
 			assert.deepEqual(report.changed, ["config.toml", ...AGENT_PATHS]);
 			assert.equal(existsSync(join(projectRoot, ".codex", "config.toml")), true);
+			assert.equal(existsSync(join(nestedWorkingDirectory, ".codex")), false);
 		} finally {
 			await rm(projectRoot, { recursive: true, force: true });
 		}
