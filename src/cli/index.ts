@@ -8,6 +8,11 @@ import { status } from "./status.js";
 import { uninstall } from "./uninstall.js";
 import { update } from "./update.js";
 import { configureOmcs, showEffectiveConfig, validateOmcsConfigFile } from "./config.js";
+import { resolveCodexHome } from "../config/codex-home.js";
+import { omcsPackageRoot } from "./package-root.js";
+import { symbolizeShareableOutput } from "./shareable-output.js";
+
+export { symbolizeShareableOutput } from "./shareable-output.js";
 
 const HELP = `OMCS management CLI
 
@@ -24,11 +29,16 @@ Usage:
 `;
 
 function writeResult(value: unknown, asJson: boolean): void {
+	const shareable = symbolizeShareableOutput(value, {
+		cwd: process.cwd(),
+		codexHome: resolveCodexHome(),
+		packageRoot: omcsPackageRoot(),
+	});
 	if (asJson) {
-		process.stdout.write(`${JSON.stringify(value)}\n`);
+		process.stdout.write(`${JSON.stringify(shareable)}\n`);
 		return;
 	}
-	process.stdout.write(`${JSON.stringify(value, null, 2)}\n`);
+	process.stdout.write(`${JSON.stringify(shareable, null, 2)}\n`);
 }
 
 function invalid(context: string): void {

@@ -46,14 +46,17 @@ describe("OMCS configuration commands", () => {
 			const env = { PATH: process.env.PATH, CODEX_HOME: codexHome };
 			const configure = spawnSync(process.execPath, [cli, "configure", "--scope", "project", "--profile", "auto", "--json"], { cwd, encoding: "utf8", env });
 			assert.equal(configure.status, 0);
-			assert.deepEqual(JSON.parse(configure.stdout), { scope: "project", action: "create", path: join(await realpath(join(root, "project")), "omcs.config.json"), bytes: JSON.parse(configure.stdout).bytes, effectiveProfile: "auto" });
+			assert.deepEqual(JSON.parse(configure.stdout), { scope: "project", action: "create", path: "project:omcs.config.json", bytes: JSON.parse(configure.stdout).bytes, effectiveProfile: "auto" });
 			const show = spawnSync(process.execPath, [cli, "config", "show", "--effective", "--json"], { cwd, encoding: "utf8", env });
 			assert.equal(show.status, 0);
 			assert.equal(JSON.parse(show.stdout).effectiveProfile, "auto");
+			assert.equal(JSON.parse(show.stdout).sources.project, "project:omcs.config.json");
+			assert.doesNotMatch(show.stdout, new RegExp(root.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 			assert.doesNotMatch(show.stdout, /"quality"|"approval"|"orchestration"/);
 			const validate = spawnSync(process.execPath, [cli, "config", "validate", "../../omcs.config.json", "--json"], { cwd, encoding: "utf8", env });
 			assert.equal(validate.status, 0);
 			assert.deepEqual(JSON.parse(validate.stdout).valid, true);
+			assert.equal(JSON.parse(validate.stdout).path, "project:omcs.config.json");
 		} finally { await rm(root, { recursive: true, force: true }); }
 	});
 });

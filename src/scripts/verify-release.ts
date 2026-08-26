@@ -9,7 +9,7 @@ export const APPROVED_PACKED_MANIFEST = [
 	".agents/plugins/marketplace.json",
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md",
 	"dist/agents/catalog.js", "dist/agents/install.js",
-	"dist/cli/agents-lifecycle.js", "dist/cli/config.js", "dist/cli/doctor.js", "dist/cli/index.js", "dist/cli/mcp-health.js", "dist/cli/omcs.js", "dist/cli/package-root.js", "dist/cli/plugin-marketplace.js", "dist/cli/plugin-registration.js", "dist/cli/setup.js", "dist/cli/status.js", "dist/cli/uninstall.js", "dist/cli/update.js",
+	"dist/cli/agents-lifecycle.js", "dist/cli/config.js", "dist/cli/doctor.js", "dist/cli/index.js", "dist/cli/mcp-health.js", "dist/cli/omcs.js", "dist/cli/package-root.js", "dist/cli/plugin-marketplace.js", "dist/cli/plugin-registration.js", "dist/cli/setup.js", "dist/cli/shareable-output.js", "dist/cli/status.js", "dist/cli/uninstall.js", "dist/cli/update.js",
 	"dist/config/codex-home.js", "dist/config/generator.js", "dist/config/managed-files.js", "dist/config/omcs-config.js", "dist/config/project-config.js", "dist/config/safe-reader.js",
 	"dist/mcp/ast.js", "dist/mcp/codemap.js", "dist/mcp/lsp.js", "dist/mcp/server.js",
 	"dist/orchestration/declaration.js", "dist/orchestration/packets.js", "dist/orchestration/policy.js", "dist/orchestration/receipt.js", "dist/orchestration/risk.js",
