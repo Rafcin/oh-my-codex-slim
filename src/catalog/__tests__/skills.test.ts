@@ -93,6 +93,18 @@ describe("lean skill catalog", () => {
 		assert.match(alias, /`omcs`/i);
 	});
 
+	it("makes the canonical OMCS skill bind effective policy through a deterministic kernel", () => {
+		const canonical = readSkill(join(repositoryRoot, "skills"), "omcs");
+		assert.match(canonical, /`omcs config show --effective --json`.*only pre-route task-tool exception/is);
+		assert.match(canonical, /current-request\/in-memory context.*overlay it after the command/is);
+		assert.match(canonical, /Natural-language urgency.*not a `fast` override/is);
+		assert.match(canonical, /Set `review` true when.*`thorough`.*`council`.*`reviewRequired`/is);
+		assert.match(canonical, /not settled or not delegable.*`audit`.*review.*`solo`/is);
+		assert.match(canonical, /visual.*`omcs_designer`.*wide.*`omcs_terra_fixer`.*`omcs_fixer`/is);
+		assert.match(canonical, /`verification` always/is);
+		assert.match(canonical, /Always declare `omcs_architect`/is);
+	});
+
 	it("gives every composed skill entry, boundary, evidence, and a next gate", () => {
 		for (const skill of SKILL_CATALOG) {
 			const markdown = readSkill(join(repositoryRoot, "skills"), skill.name);

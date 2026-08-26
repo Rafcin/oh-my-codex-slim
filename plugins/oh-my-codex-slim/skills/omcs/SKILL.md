@@ -11,12 +11,19 @@ OMCS owns one composed, evidence-led delivery run. It routes focused skills and 
 
 Before the route declaration, run `omcs config show --effective --json` in the task working directory. This read-only command is the only pre-route task-tool exception. Bind its returned profile and source identity to this run. A session override exists only in current-request/in-memory context: overlay it after the command only when the user explicitly names `auto`, `fast`, `thorough`, or `council`; never claim it persisted or call `configure --scope session` to persist it. Natural-language urgency such as “move fast” is not a `fast` override.
 
-Classify settled/unsettled, blast radius (`narrow`, `moderate`, `wide`), review-required, visual, delegable, research, reproduction, generated-code, repository-mapping, difficult-diagnosis, and architecture-advice signals. Then apply this kernel exactly:
+Classify the policy inputs before routing:
 
-- Unsettled or non-delegable → `audit` with `omcs_reviewer` when review is required, otherwise `solo`.
-- Settled and delegable → `full` when review is required, otherwise `delegate`; use `omcs_designer` for visual work, `omcs_terra_fixer` for wide blast radius, otherwise `omcs_fixer`.
-- `thorough` and `council` force review. Add `context`, `codebase-design`, `plan`, and `tdd` for either profile; otherwise add them from uncertainty/blast/reproduction. Add `research` only when needed, `verification` always, anti-slop for thorough/council/audit/full/generated-code, and `code-review` for thorough/council/audit/full.
-- Always declare `omcs_architect`; add `omcs_explorer` for repository mapping, `omcs_librarian` for research, and `omcs_oracle` for difficult diagnosis or architecture advice. Add the route implementer/reviewer above.
+- `settled` is true only when requirements, owned write scope, interfaces, and acceptance oracle are known. `delegable` is true only when one isolated packet can name those items without ownership conflict.
+- Blast radius is `narrow` for one bounded internal surface, `moderate` for multiple internal surfaces or a persistent local contract, and `wide` for public compatibility, security/credential ownership, dependencies/architecture, irreversible state, or external state.
+- `reviewRequired` is true for user-visible behavior, public APIs/compatibility, security/credentials, dependencies/architecture, or persistent, irreversible, or external state. Set `visual`, `needsResearch`, `hasReproduction`, `generatedCodeRisk`, `needsRepositoryMapping`, `needsDifficultDiagnosis`, and `needsArchitectureAdvice` only from direct task evidence.
+
+Apply this kernel exactly:
+
+- Set `review` true when the profile is `thorough` or `council`, or `reviewRequired` is true.
+- If not settled or not delegable, choose `audit` plus `omcs_reviewer` when `review` is true; otherwise choose `solo`.
+- Otherwise choose the implementer in this precedence: visual → `omcs_designer`; non-visual `wide` → `omcs_terra_fixer`; all other work → `omcs_fixer`. Choose `full` plus `omcs_reviewer` when `review` is true; otherwise choose `delegate`.
+- Skills: add `context` for thorough/council or unsettled; `codebase-design` and `plan` for thorough/council, unsettled, or non-narrow blast; `research` only for `needsResearch`; `tdd` for thorough/council, unsettled, or `hasReproduction`; `ai-slop-cleaner` for thorough/council, audit/full, or `generatedCodeRisk`; `verification` always; `code-review` for thorough/council or audit/full.
+- Always declare `omcs_architect`; add `omcs_explorer` for `needsRepositoryMapping`, `omcs_librarian` for `needsResearch`, and `omcs_oracle` for `needsDifficultDiagnosis` or `needsArchitectureAdvice`. Add exactly the implementer/reviewer selected above.
 
 Inspect the task, ownership, and risk, then declare before any other task tool:
 
