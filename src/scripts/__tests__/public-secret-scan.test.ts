@@ -79,6 +79,52 @@ describe("public secret scan", () => {
 		}
 	});
 
+	it("reports common production credential families without returning matched values", async () => {
+		const root = await fixture();
+		try {
+			const values = [
+				["AK", "IA", "A".repeat(16)].join(""),
+				["npm", "_", "B".repeat(36)].join(""),
+				["xox", "b-", "1".repeat(12), "-", "2".repeat(12), "-", "C".repeat(24)].join(""),
+				["gl", "pat-", "D".repeat(24)].join(""),
+				["sk", "_live_", "E".repeat(24)].join(""),
+				["https://release-user:", "F".repeat(24), "@packages.example.invalid/archive"].join(""),
+				["client_", "secret = \"", "G".repeat(32), "\""].join(""),
+			].join("\n");
+			await writeFile(join(root, "credentials.txt"), values);
+			stage(root);
+
+			const findings = await scanPublicFiles(root);
+			assert.deepEqual(findings, [
+				{ path: "credentials.txt", rule: "aws-access-key" },
+				{ path: "credentials.txt", rule: "credentialed-url" },
+				{ path: "credentials.txt", rule: "gitlab-token" },
+				{ path: "credentials.txt", rule: "npm-token" },
+				{ path: "credentials.txt", rule: "secret-assignment" },
+				{ path: "credentials.txt", rule: "slack-token" },
+				{ path: "credentials.txt", rule: "stripe-live-key" },
+			]);
+			assert.doesNotMatch(JSON.stringify(findings), /AKIA|release-user|AAAA|BBBB|CCCC|DDDD|EEEE|FFFF|GGGG/);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("permits synthetic assignment and credentialed URL placeholders", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "synthetic.md"), [
+				["client_", "secret=synthetic-secret-never-use"].join(""),
+				["https://fixture-user:", "synthetic-placeholder", "@example.invalid/api"].join(""),
+				["xox", "b-synthetic-placeholder-token"].join(""),
+			].join("\n"));
+			stage(root);
+			assert.deepEqual(await scanPublicFiles(root), []);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("reports approved-only and bare local home paths without exposing either username", async () => {
 		const root = await fixture();
 		try {

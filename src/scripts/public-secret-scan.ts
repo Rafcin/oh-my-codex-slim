@@ -27,12 +27,19 @@ interface Pattern {
 
 const patterns: readonly Pattern[] = [
 	{ rule: "authorization-header", pattern: /\bauthorization\s*:\s*(?:bearer|basic|token)\s+([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
+	{ rule: "aws-access-key", pattern: /\b(?:AKIA|ASIA)[A-Z0-9]{16}\b/g, value: (match) => match[0] },
 	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=\"?([A-Za-z0-9._~+/-]{8,})\"?/gi, value: (match) => match[1] ?? "" },
+	{ rule: "credentialed-url", pattern: /\b(?:https?|git|ssh):\/\/[^\s:/@]+:([^\s/@?#]{8,})@[^\s/@]+/gi, value: (match) => match[1] ?? "" },
 	{ rule: "github-token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})\b/g, value: (match) => match[0] },
+	{ rule: "gitlab-token", pattern: /\bglpat-[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
 	{ rule: "local-home-path", pattern: /(?:^|[\s"'(=])((?:\/(?:Users|home)\/[A-Za-z0-9._-]+)(?:\/[A-Za-z0-9._-]+)*)(?=$|[\s"'(),;])/g, value: (match) => match[1] ?? "" },
+	{ rule: "npm-token", pattern: /\bnpm_[A-Za-z0-9]{36}\b/g, value: (match) => match[0] },
 	{ rule: "openai-token", pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
 	{ rule: "pem-private-key", pattern: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----\r?\n(?:[A-Za-z0-9+/=]{16,}\r?\n)+-----END (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/gi, value: (match) => match[0] },
 	{ rule: "provider-token", pattern: /\b(?:xai|sk-ant|AIza)[-_]?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
+	{ rule: "secret-assignment", pattern: /\b(?:api[_-]?key|client[_-]?secret|access[_-]?key|access[_-]?token|auth[_-]?token|password|secret)\s*[:=]\s*["']?([A-Za-z0-9._~+/-]{16,255})/gi, value: (match) => match[1] ?? "" },
+	{ rule: "slack-token", pattern: /\bxox[baprs]-[A-Za-z0-9-]{20,255}\b/g, value: (match) => match[0] },
+	{ rule: "stripe-live-key", pattern: /\bsk_live_[A-Za-z0-9]{16,255}\b/g, value: (match) => match[0] },
 ];
 
 function sanitizedGitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
