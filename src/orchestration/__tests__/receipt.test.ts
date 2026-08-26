@@ -53,6 +53,8 @@ describe("private OMCS run receipts", () => {
 				"node --env-file=.env --test", "node --ENV=production --test", "node process.env", "node $HOME",
 				"git --env=production status", "git environment status", "git status %HOME%", "git status .env",
 				"omcs --env-file=.env status", "omcs --ENV=production status", "omcs dotenv status", "omcs status KEY=value",
+				"tsc --env-file=.env --noEmit", "tsc KEY=value", "tsc $HOME",
+				"biome --ENV=production lint src", "biome KEY=value lint src", "biome lint %HOME%",
 			];
 			for (const command of unsafe) await assert.rejects(writeRunReceipt(root, receipt({ verification: [{ command, outcome: "passed" }] })), /receipt|unsafe|invalid/i, command);
 			await assert.rejects(lstat(join(root, ".omcs")), { code: "ENOENT" });
