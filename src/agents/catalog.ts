@@ -28,7 +28,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-sol",
 		effort: "high",
 		permission: "inherited",
-		developerInstructions: "Classify the request before acting, declare one OMCS route, keep ownership explicit, and verify evidence before claiming completion. Use specialist agents only when the work is settled and their ownership is bounded.",
+		developerInstructions: "Own request intent, architecture, routing, and decomposition. Give every delegate exact ownership, preserve the parent verification trail, and make the final acceptance decision only after evidence is complete.",
 	},
 	{
 		name: "omcs_explorer",
@@ -36,7 +36,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-luna",
 		effort: "low",
 		permission: "read-only",
-		developerInstructions: "Inspect only. Map the smallest relevant code surface, cite concrete files and symbols, distinguish facts from inferences, and return concise findings without editing files or changing external state.",
+		developerInstructions: "Read-only discovery only. Map the smallest relevant code surface, cite files and symbols, separate facts from inferences, and return concise findings; the parent owns acceptance.",
 	},
 	{
 		name: "omcs_librarian",
@@ -44,7 +44,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-luna",
 		effort: "medium",
 		permission: "read-only",
-		developerInstructions: "Research only. Prefer authoritative primary sources and pinned local documentation, identify versions and uncertainty, cite every material claim, and never edit files or expose credentials.",
+		developerInstructions: "Read-only research only. Prefer authoritative primary sources and pinned local documentation, identify versions and uncertainty, cite material claims, and return findings; the parent owns acceptance.",
 	},
 	{
 		name: "omcs_oracle",
@@ -52,7 +52,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-sol",
 		effort: "high",
 		permission: "read-only",
-		developerInstructions: "Diagnose without editing. Trace evidence to root causes, compare viable designs and their costs, call out unresolved uncertainty, and return a concrete recommendation to the route owner.",
+		developerInstructions: "Read-only diagnosis only. Trace evidence to root causes, compare viable designs and costs, name unresolved uncertainty, and return a concrete recommendation; the parent owns acceptance.",
 	},
 	{
 		name: "omcs_fixer",
@@ -60,7 +60,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-luna",
 		effort: "max",
 		permission: "inherited",
-		developerInstructions: "Implement only the explicitly owned, settled change. Use test-driven development, preserve unrelated work, run focused verification, and report changed files and evidence to the route owner.",
+		developerInstructions: "Change only the exactly owned, settled paths. Others may edit concurrently; never revert unrelated work. Use TDD, run focused verification, and return a structured report with paths, commands, evidence, exclusions, and risks.",
 	},
 	{
 		name: "omcs_terra_fixer",
@@ -68,7 +68,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-terra",
 		effort: "high",
 		permission: "inherited",
-		developerInstructions: "Implement the explicitly owned higher-risk change with careful boundary analysis. Use test-driven development, preserve unrelated work, validate integrations and rollback behavior, and report fresh evidence.",
+		developerInstructions: "Change only the exactly owned higher-risk paths after boundary analysis. Others may edit concurrently; never revert unrelated work. Use TDD, validate integrations and rollback behavior, and return a structured report with paths, commands, evidence, exclusions, and risks.",
 	},
 	{
 		name: "omcs_designer",
@@ -76,7 +76,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-terra",
 		effort: "high",
 		permission: "inherited",
-		developerInstructions: "Own only the assigned visual implementation. Follow the product design system and accessibility requirements, verify real rendered behavior at relevant sizes, preserve unrelated work, and report visual evidence.",
+		developerInstructions: "Change only the exactly owned visual paths. Others may edit concurrently; never revert unrelated work. Follow the design system and accessibility requirements, prove rendered behavior at relevant sizes, and return a structured report with visual proof, paths, commands, exclusions, and risks.",
 	},
 	{
 		name: "omcs_reviewer",
@@ -84,6 +84,6 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-sol",
 		effort: "high",
 		permission: "read-only",
-		developerInstructions: "Review independently and do not edit. Inspect the implementation diff and fresh verification evidence, identify concrete defects with file references, and return exactly one verdict: ship, fix-first, or rethink. Any fix requires a new review.",
+		developerInstructions: "Perform a fresh, behaviorally read-only review against the spec, quality bar, accumulated diff, and evidence. Report concrete defects with file references and exactly one verdict: ship, fix-first, or rethink. Any correction invalidates the verdict, requires parent reverification, then a new review.",
 	},
 ] as const;

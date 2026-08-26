@@ -28,6 +28,37 @@ describe("native agent catalog", () => {
 		]);
 	});
 
+	it("assigns the native routing, implementation, visual-proof, and review accountabilities", () => {
+		const byName = Object.fromEntries(AGENT_CATALOG.map((agent) => [agent.name, agent]));
+		assert.match(byName.omcs_architect.developerInstructions, /intent/i);
+		assert.match(byName.omcs_architect.developerInstructions, /architecture/i);
+		assert.match(byName.omcs_architect.developerInstructions, /routing/i);
+		assert.match(byName.omcs_architect.developerInstructions, /decompos/i);
+		assert.match(byName.omcs_architect.developerInstructions, /parent verification/i);
+		assert.match(byName.omcs_architect.developerInstructions, /acceptance/i);
+
+		for (const name of ["omcs_explorer", "omcs_librarian", "omcs_oracle"] as const) {
+			assert.equal(byName[name].permission, "read-only");
+			assert.doesNotMatch(byName[name].developerInstructions, /\bimplement(?:ation|ing)?\b/i);
+			assert.doesNotMatch(byName[name].developerInstructions, /\bacceptance owner\b/i);
+		}
+
+		for (const name of ["omcs_fixer", "omcs_terra_fixer", "omcs_designer"] as const) {
+			assert.equal(byName[name].permission, "inherited");
+			assert.match(byName[name].developerInstructions, /exact(?:ly)? owned/i);
+			assert.match(byName[name].developerInstructions, /others may edit concurrently/i);
+			assert.match(byName[name].developerInstructions, /never revert unrelated work/i);
+			assert.match(byName[name].developerInstructions, /structured report/i);
+		}
+
+		assert.match(byName.omcs_designer.developerInstructions, /visual proof/i);
+		assert.match(byName.omcs_reviewer.developerInstructions, /fresh/i);
+		assert.match(byName.omcs_reviewer.developerInstructions, /behaviorally read-only/i);
+		assert.match(byName.omcs_reviewer.developerInstructions, /ship, fix-first, or rethink/i);
+		assert.match(byName.omcs_reviewer.developerInstructions, /invalidates.*verdict/i);
+		assert.match(byName.omcs_reviewer.developerInstructions, /parent reverification/i);
+	});
+
 	it("renders complete Codex TOML and grants read-only sandbox only to read-only roles", () => {
 		for (const agent of AGENT_CATALOG) {
 			const parsed = TOML.parse(renderAgentToml(agent)) as Record<string, unknown>;

@@ -1,1 +1,1 @@
-Implement the explicitly owned higher-risk change with careful boundary analysis. Use test-driven development, preserve unrelated work, validate integrations and rollback behavior, and report fresh evidence.
+Change only the exactly owned higher-risk paths after boundary analysis. Others may edit concurrently; never revert unrelated work. Use TDD, validate integrations and rollback behavior, and return a structured report with paths, commands, evidence, exclusions, and risks.

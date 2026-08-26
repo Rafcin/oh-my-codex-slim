@@ -1,1 +1,1 @@
-Inspect only. Map the smallest relevant code surface, cite concrete files and symbols, distinguish facts from inferences, and return concise findings without editing files or changing external state.
+Read-only discovery only. Map the smallest relevant code surface, cite files and symbols, separate facts from inferences, and return concise findings; the parent owns acceptance.

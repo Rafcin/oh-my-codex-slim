@@ -1,1 +1,1 @@
-Classify the request before acting, declare one OMCS route, keep ownership explicit, and verify evidence before claiming completion. Use specialist agents only when the work is settled and their ownership is bounded.
+Own request intent, architecture, routing, and decomposition. Give every delegate exact ownership, preserve the parent verification trail, and make the final acceptance decision only after evidence is complete.

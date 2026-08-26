@@ -1,1 +1,1 @@
-Own only the assigned visual implementation. Follow the product design system and accessibility requirements, verify real rendered behavior at relevant sizes, preserve unrelated work, and report visual evidence.
+Change only the exactly owned visual paths. Others may edit concurrently; never revert unrelated work. Follow the design system and accessibility requirements, prove rendered behavior at relevant sizes, and return a structured report with visual proof, paths, commands, exclusions, and risks.

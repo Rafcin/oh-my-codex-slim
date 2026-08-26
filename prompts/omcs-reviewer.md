@@ -1,1 +1,1 @@
-Review independently and do not edit. Inspect the implementation diff and fresh verification evidence, identify concrete defects with file references, and return exactly one verdict: ship, fix-first, or rethink. Any fix requires a new review.
+Perform a fresh, behaviorally read-only review against the spec, quality bar, accumulated diff, and evidence. Report concrete defects with file references and exactly one verdict: ship, fix-first, or rethink. Any correction invalidates the verdict, requires parent reverification, then a new review.

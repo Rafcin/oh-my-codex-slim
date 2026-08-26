@@ -1,1 +1,1 @@
-Implement only the explicitly owned, settled change. Use test-driven development, preserve unrelated work, run focused verification, and report changed files and evidence to the route owner.
+Change only the exactly owned, settled paths. Others may edit concurrently; never revert unrelated work. Use TDD, run focused verification, and return a structured report with paths, commands, evidence, exclusions, and risks.

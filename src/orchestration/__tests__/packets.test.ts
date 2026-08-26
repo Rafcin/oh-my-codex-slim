@@ -3,20 +3,25 @@ import { describe, it } from "node:test";
 import { buildDelegationPacket } from "../packets.js";
 
 describe("delegation packets", () => {
-	it("renders exactly the five required sections without inventing context", () => {
+	it("renders the seven mandatory delegation sections with concurrent-work and return safeguards", () => {
 		assert.equal(buildDelegationPacket({
-			objective: "Implement the bounded parser.",
+			objective: "Make parser failures observable to callers.",
 			ownership: ["src/parser.ts", "src/parser.test.ts"],
+			interfaces: ["Keep parse(input: string) compatible with existing callers."],
 			context: ["The input is UTF-8.", "The public API is stable."],
-			constraints: ["Do not change callers.", "Use TDD."],
-			evidenceRequired: ["Focused tests pass.", "Lint is clean."],
+			constraints: ["Do not change callers.", "Exclude parser format migrations."],
+			verification: ["Run npm test -- parser; expect the focused suite to pass."],
+			returnContract: ["Report changed paths, commands, observed results, exclusions, and remaining risks."],
 		}), [
 			"## Objective",
-			"Implement the bounded parser.",
+			"Make parser failures observable to callers.",
 			"",
 			"## Ownership",
 			"- src/parser.ts",
 			"- src/parser.test.ts",
+			"",
+			"## Interfaces",
+			"- Keep parse(input: string) compatible with existing callers.",
 			"",
 			"## Context",
 			"- The input is UTF-8.",
@@ -24,21 +29,43 @@ describe("delegation packets", () => {
 			"",
 			"## Constraints",
 			"- Do not change callers.",
-			"- Use TDD.",
+			"- Exclude parser format migrations.",
+			"- Others may edit concurrently; never revert unrelated work.",
 			"",
-			"## Evidence Required",
-			"- Focused tests pass.",
-			"- Lint is clean.",
+			"## Verification",
+			"- Run npm test -- parser; expect the focused suite to pass.",
+			"",
+			"## Return Contract",
+			"- Report changed paths, commands, observed results, exclusions, and remaining risks.",
+			"- Return a structured report to the parent when the owned work is complete.",
 		].join("\n"));
 	});
 
-	it("rejects missing packet sections instead of producing an ambiguous handoff", () => {
-		assert.throws(() => buildDelegationPacket({
-			objective: " ",
+	it("rejects empty mandatory sections and duplicate ownership paths", () => {
+		const completePacket = {
+			objective: "Implement the parser.",
 			ownership: ["src/parser.ts"],
+			interfaces: ["Public API is stable."],
 			context: ["Known context."],
 			constraints: ["Stay scoped."],
-			evidenceRequired: ["Tests pass."],
-		}), /objective/i);
+			verification: ["Tests pass."],
+			returnContract: ["Report results."],
+		};
+		for (const [label, incomplete] of [
+			["objective", { ...completePacket, objective: " " }],
+			["ownership", { ...completePacket, ownership: [] }],
+			["interfaces", { ...completePacket, interfaces: [] }],
+			["context", { ...completePacket, context: [] }],
+			["constraints", { ...completePacket, constraints: [] }],
+			["verification", { ...completePacket, verification: [] }],
+			["return contract", { ...completePacket, returnContract: [] }],
+		] as const) {
+			assert.throws(() => buildDelegationPacket(incomplete), new RegExp(label, "i"));
+		}
+
+		assert.throws(() => buildDelegationPacket({
+			...completePacket,
+			ownership: ["src/parser.ts", " src/parser.ts "],
+		}), /duplicate ownership/i);
 	});
 });

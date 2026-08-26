@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import {
   AGENT_DEFINITIONS,
   getAgent,
@@ -8,7 +10,43 @@ import {
   type AgentDefinition,
 } from '../definitions.js';
 
+const promptPath = (name: string) => fileURLToPath(new URL(`../../../prompts/omcs-${name}.md`, import.meta.url));
+
+function prompt(name: string): string {
+  return readFileSync(promptPath(name), 'utf8');
+}
+
 describe('agents/definitions', () => {
+	it('keeps every native-agent prompt aligned with its bounded role contract', () => {
+		const architect = prompt('architect');
+		for (const responsibility of ['intent', 'architecture', 'routing', 'decomposition', 'parent verification', 'acceptance']) {
+			assert.match(architect, new RegExp(responsibility, 'i'));
+		}
+
+		for (const name of ['explorer', 'librarian', 'oracle']) {
+			const contents = prompt(name);
+			assert.match(contents, /read-only|inspect only|research only|diagnose without editing/i);
+			assert.doesNotMatch(contents, /\bimplement(?:ation|ing)?\b/i);
+			assert.doesNotMatch(contents, /\bacceptance owner\b/i);
+		}
+
+		for (const name of ['fixer', 'terra-fixer', 'designer']) {
+			const contents = prompt(name);
+			assert.match(contents, /exact(?:ly)? owned/i);
+			assert.match(contents, /others may edit concurrently/i);
+			assert.match(contents, /never revert unrelated work/i);
+			assert.match(contents, /structured report/i);
+		}
+
+		assert.match(prompt('designer'), /visual proof/i);
+		const reviewer = prompt('reviewer');
+		assert.match(reviewer, /fresh/i);
+		assert.match(reviewer, /behaviorally read-only/i);
+		assert.match(reviewer, /ship, fix-first, or rethink/i);
+		assert.match(reviewer, /invalidates.*verdict/i);
+		assert.match(reviewer, /parent reverification/i);
+	});
+
   it('returns known agents and undefined for unknown names', () => {
     assert.equal(getAgent('executor'), AGENT_DEFINITIONS.executor);
     assert.equal(getAgent('does-not-exist'), undefined);
