@@ -2,6 +2,8 @@
 
 OpenCodex is the supported external-model transport for OMCS. It is a separately installed and licensed companion owned by the OpenCodex project. OMCS does not vendor it, start or stop it during OMCS lifecycle operations, or own its accounts, provider keys, model catalog, service configuration, or data directory.
 
+OpenCodex is optional: OMCS works with native Codex when no external-model route is desired. If used, it is the sole supported external-model transport. OMCS does not recommend or install Codex Router, an OpenCode runtime, LazyCodex, a daemon, tmux, or telemetry as part of orchestration.
+
 ## Non-model verification
 
 ```bash

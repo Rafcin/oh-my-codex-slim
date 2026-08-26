@@ -4,7 +4,7 @@ OMCS has five bounded layers:
 
 1. The local Codex plugin distributes skills, inert hooks metadata, MCP metadata, and App/CLI discovery metadata.
 2. The `omcs` CLI owns setup, explicit update, doctor, status, agents, and uninstall.
-3. Risk-gated orchestration selects one of eight native Codex agents and an explicit route.
+3. Risk-gated orchestration selects an explicit profile, delivery route, native roles, and focused skill gates.
 4. `omcs_code_intel` provides six deterministic AST, symbol, reference, diagnostic, and codemap tools without downloading language servers.
 5. OpenCodex is the separately owned external-model transport. OMCS does not read, transfer, log, or store provider credentials.
 
@@ -17,6 +17,12 @@ Runtime project state belongs under `.omcs/`; local execution receipts under `.g
 ## Agent and model boundary
 
 The eight OMCS agents are native Codex definitions. OpenCodex owns primary external-model routing, provider selection, accounts, quotas, and any OpenCodex-managed agent behavior. OMCS does not generate provider-specific agent files or infer model eligibility from credentials.
+
+## Orchestration boundary
+
+An OMCS run starts with an auditable declaration of profile, route, risk, skills, agents, and approval posture. The architect owns intent, route selection, packet contracts, parent verification, and acceptance. Delivery is one of `solo`, `delegate`, `audit`, or `full`; council is explicit-only, read-only advice before a normal route.
+
+The adaptive sequence is context and research, material design decision, plan, TDD implementation, changed-file anti-slop/simplification, fresh verification, and risk-gated fresh review. It is conditional: a settled one-file fix stays small, while a persistent or public-interface change earns more gates. [Execution modes](execution-modes.md) and [agents and skills](agents-and-skills.md) define these contracts.
 
 ## MCP safety boundary
 

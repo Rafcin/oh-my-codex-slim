@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 700" role="img" aria-labelledby="title desc">
+  <title>OMCS profile and delivery route selection</title>
+  <desc>Profiles select a normal delivery route. Explicit council is a read-only overlay, not a route.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#111827"/><stop offset="1" stop-color="#1E1B4B"/></linearGradient>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#93C5FD"/></marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="7" stdDeviation="7" flood-color="#020617" flood-opacity=".35"/></filter>
+  </defs>
+  <rect width="1440" height="700" rx="30" fill="url(#bg)"/>
+  <text x="72" y="86" font-family="ui-sans-serif, system-ui, sans-serif" font-size="38" font-weight="700" fill="#F8FAFC">OMCS profile and delivery route selection</text>
+  <text x="72" y="124" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" fill="#C7D2FE">Profiles calibrate the gates. Routes make delivery ownership explicit.</text>
+  <g font-family="ui-sans-serif, system-ui, sans-serif" text-anchor="middle" filter="url(#shadow)">
+    <g transform="translate(88 210)"><rect width="220" height="94" rx="18" fill="#0E7490"/><text x="110" y="38" font-size="19" font-weight="700" fill="white">Profile</text><text x="110" y="65" font-size="14" fill="#CFFAFE">auto · fast · thorough</text></g>
+    <g transform="translate(430 196)"><path d="M126 0 L252 66 L126 132 L0 66 Z" fill="#4F46E5"/><text x="126" y="61" font-size="17" font-weight="700" fill="white">Council explicitly</text><text x="126" y="84" font-size="17" font-weight="700" fill="white">requested?</text></g>
+    <g transform="translate(790 160)"><rect width="270" height="84" rx="18" fill="#6D28D9"/><text x="135" y="35" font-size="18" font-weight="700" fill="white">Read-only council overlay</text><text x="135" y="61" font-size="13" fill="#EDE9FE">only with proven lane diversity</text></g>
+    <g transform="translate(790 330)"><rect width="270" height="94" rx="18" fill="#1D4ED8"/><text x="135" y="39" font-size="18" font-weight="700" fill="white">Assess task shape and risk</text><text x="135" y="67" font-size="13" fill="#DBEAFE">no silent downgrade</text></g>
+  </g>
+  <g fill="none" stroke="#93C5FD" stroke-width="4" marker-end="url(#arrow)">
+    <path d="M308 257 H420"/><path d="M682 262 H780"/><path d="M556 328 V377 H780"/><path d="M925 244 V319"/>
+  </g>
+  <g font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" font-weight="700" fill="#BFDBFE"><text x="704" y="252">yes</text><text x="620" y="366">no</text></g>
+  <g font-family="ui-sans-serif, system-ui, sans-serif" text-anchor="middle" filter="url(#shadow)">
+    <g transform="translate(142 522)"><rect width="205" height="104" rx="18" fill="#047857"/><text x="102" y="41" font-size="20" font-weight="700" fill="white">solo</text><text x="102" y="69" font-size="13" fill="#D1FAE5">architect delivers</text></g>
+    <g transform="translate(427 522)"><rect width="205" height="104" rx="18" fill="#0369A1"/><text x="102" y="41" font-size="20" font-weight="700" fill="white">delegate</text><text x="102" y="69" font-size="13" fill="#E0F2FE">one bounded worker</text></g>
+    <g transform="translate(712 522)"><rect width="205" height="104" rx="18" fill="#7C3AED"/><text x="102" y="41" font-size="20" font-weight="700" fill="white">audit</text><text x="102" y="69" font-size="13" fill="#EDE9FE">architect plus reviewer</text></g>
+    <g transform="translate(997 522)"><rect width="205" height="104" rx="18" fill="#BE123C"/><text x="102" y="41" font-size="20" font-weight="700" fill="white">full</text><text x="102" y="69" font-size="13" fill="#FFE4E6">worker, architect, reviewer</text></g>
+  </g>
+  <g fill="none" stroke="#A5B4FC" stroke-width="4" marker-end="url(#arrow)"><path d="M878 424 V478 H244 V512"/><path d="M878 424 V478 H529 V512"/><path d="M878 424 V478 H814 V512"/><path d="M878 424 V478 H1099 V512"/></g>
+  <text x="1275" y="600" text-anchor="middle" font-family="ui-sans-serif, system-ui, sans-serif" font-size="15" fill="#FDE68A">Every route ends in architect-owned evidence.</text>
+</svg>

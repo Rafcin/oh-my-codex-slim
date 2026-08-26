@@ -1,0 +1,7 @@
+---
+title: OMCS configuration precedence
+---
+flowchart TB
+    A[Session override] --> B[Nearest project omcs.config.json]
+    B --> C[Global OMCS preferences]
+    C --> D[Built-in safe defaults]

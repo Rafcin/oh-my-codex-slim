@@ -1,0 +1,16 @@
+---
+title: OMCS profile and delivery route selection
+---
+flowchart TD
+    A[Profile] --> B{Council explicitly requested?}
+    B -- yes --> C[Read-only council overlay]
+    B -- no --> D[Assess risk and task shape]
+    C --> D
+    D --> E[solo]
+    D --> F[delegate]
+    D --> G[audit]
+    D --> H[full]
+    E --> I[Architect acceptance]
+    F --> I
+    G --> I
+    H --> I

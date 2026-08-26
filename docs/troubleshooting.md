@@ -51,6 +51,21 @@ codex plugin list --json
 
 Marketplace registration belongs to Codex CLI. `omcs setup` writes only a comment marker and must not add a second `[marketplaces.omcs-local]` table.
 
+## OMCS asks for a configuration scope
+
+Choose project scope when the repository needs portable, checked-in engineering policy; choose global scope for private defaults; choose session scope for a no-write trial. Project policy cannot contain credentials, provider configuration, account preferences, or model pins. Use these read-only checks if the result is unexpected:
+
+```bash
+omcs config show --effective --json
+omcs config validate omcs.config.json --json
+```
+
+Do not force an unsafe replacement. `omcs configure` rejects links, unknown ownership, and invalid policy before it writes. See [configuration](configuration.md).
+
+## A route needs escalation or a material decision
+
+OMCS may raise its route when it discovers a broader interface, persistent contract, security boundary, dependency, or irreversible external action. It pauses only for material decisions that change user-visible scope, compatibility, data/configuration, security/privacy, architecture, dependencies, or costly external state. Routine implementation choices remain autonomous. See [execution modes](execution-modes.md).
+
 ## Attribution and support evidence
 
 Include the OMCS version, redacted doctor/status output, and the exact non-secret failing path. The attribution ledger names Yeachan Heo, Alvin, Matt Pocock, Daniel McAteer, `opencodex contributors`/`lidge-jun`, Herrington Darkholme (`HerringtonDarkholme`), behavioral-reference owner `code-yeongyu`, and legacy compatibility authors/owners `codex-router contributors`, `Duola`, and `duolahypercho`. See [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); do not invent fuller names.
