@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { constants, realpathSync } from "node:fs";
 import { lstat, open } from "node:fs/promises";
-import { posix, relative, resolve } from "node:path";
+import { dirname, posix, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
@@ -73,6 +73,11 @@ function resolveCanonicalRepository(root: string, source: NodeJS.ProcessEnv): st
 		throw new Error("public-secret-scan: Git root does not contain the requested directory");
 	}
 	return repositoryRoot;
+}
+
+/** Resolves a caller to its canonical Git root without honoring ambient Git overrides. */
+export function resolvePublicRepositoryRoot(root = process.cwd(), environment: NodeJS.ProcessEnv = process.env): string {
+	return resolveCanonicalRepository(root, sanitizedGitEnvironment(environment));
 }
 
 function trackedFiles(root: string, environment: NodeJS.ProcessEnv): string[] {
@@ -178,7 +183,7 @@ export function scanPublicBytes(path: string, bytes: Buffer): PublicSecretFindin
 /** Scans only canonical Git-tracked, bounded regular files and never returns matched content. */
 export async function scanPublicFiles(root = process.cwd(), options: ScanPublicFilesOptions = {}): Promise<PublicSecretFinding[]> {
 	const environment = sanitizedGitEnvironment(options.environment ?? process.env);
-	const repositoryRoot = resolveCanonicalRepository(root, environment);
+	const repositoryRoot = resolvePublicRepositoryRoot(root, environment);
 	const findings: PublicSecretFinding[] = [];
 	for (const path of trackedFiles(repositoryRoot, environment)) {
 		findings.push(...scanPublicBytes(path, await readTrackedFile(repositoryRoot, path, options.beforeOpen)));
@@ -267,6 +272,56 @@ export async function scanNpmPackageArtifact(path: string): Promise<NpmPackageAr
 		paths: paths.sort(),
 		findings: findings.sort((left, right) => left.path.localeCompare(right.path) || left.rule.localeCompare(right.rule)),
 	};
+}
+
+function sameArtifactScan(left: NpmPackageArtifactScan, right: NpmPackageArtifactScan): boolean {
+	return left.sha256 === right.sha256
+		&& JSON.stringify(left.paths) === JSON.stringify(right.paths)
+		&& JSON.stringify(left.findings) === JSON.stringify(right.findings);
+}
+
+/** Preserves one previously scanned private artifact with exclusive, no-clobber ownership. */
+export async function preserveNpmPackageArtifact(
+	sourcePath: string,
+	targetPath: string,
+	expected: NpmPackageArtifactScan,
+): Promise<NpmPackageArtifactScan> {
+	if (expected.findings.length > 0) throw new Error("public-secret-scan: refuses to preserve an unapproved npm artifact");
+	const source = resolve(sourcePath);
+	const target = resolve(targetPath);
+	if (source === target) throw new Error("public-secret-scan: source and approved npm artifact paths must differ");
+	const parent = await lstat(dirname(target));
+	if (parent.isSymbolicLink() || !parent.isDirectory() || (parent.mode & 0o077) !== 0) {
+		throw new Error("public-secret-scan: refuses unsafe approved artifact directory");
+	}
+	const bytes = await readPrivateArtifact(source);
+	if (createHash("sha256").update(bytes).digest("hex") !== expected.sha256) {
+		throw new Error("public-secret-scan: npm artifact changed after approval");
+	}
+
+	let file: Awaited<ReturnType<typeof open>>;
+	try {
+		file = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+		const existing = await scanNpmPackageArtifact(target);
+		if (sameArtifactScan(existing, expected)) return existing;
+		throw new Error("public-secret-scan: refuses to replace an approved npm artifact");
+	}
+	try {
+		await file.chmod(0o600);
+		await file.writeFile(bytes);
+		await file.sync();
+		const written = await file.stat();
+		if (!written.isFile() || written.nlink !== 1 || (written.mode & 0o077) !== 0 || written.size !== bytes.byteLength) {
+			throw new Error("public-secret-scan: approved npm artifact write was not private and exact");
+		}
+	} finally {
+		await file.close();
+	}
+	const preserved = await scanNpmPackageArtifact(target);
+	if (!sameArtifactScan(preserved, expected)) throw new Error("public-secret-scan: approved npm artifact changed while preserving");
+	return preserved;
 }
 
 async function main(): Promise<void> {

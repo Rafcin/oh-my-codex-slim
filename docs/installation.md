@@ -74,6 +74,18 @@ ocx health --json
 
 OMCS does not migrate OpenCodex away, import provider keys, or duplicate its provider configuration. If an earlier OMCS experiment created an OpenCodex-to-Codex-Router migration manifest, retain it as rollback evidence; the legacy rollback path remains recoverable but is not part of a new install.
 
+## Approved release artifact
+
+`npm run verify:release` builds one real package tarball, scans its exact archive paths and bytes, and preserves the approved mode-`0600` artifact below the ignored `.omcs/release/` directory. The gate prints both the relative path and SHA-256. It is idempotent for identical bytes and refuses to replace different bytes at an existing approved path.
+
+If npm publication is separately authorized, publish only the exact printed artifact path; never rebuild or publish the working directory after the gate. Replace `SHA256` below with the digest printed by the successful gate:
+
+```bash
+npm publish --access public ./.omcs/release/oh-my-codex-slim-0.1.0-SHA256.tgz
+```
+
+Publication is a separate network and credential boundary. The offline release gate does not publish, authenticate, or contact a provider/model.
+
 ## Update and uninstall
 
 There is no automatic or launch-time OMCS update:

@@ -28,6 +28,9 @@ describe("release verification isolation", () => {
 		assert.match(source, /dist\/scripts\/validate-plugin\.js/);
 		assert.match(source, /dist\/config\/safe-reader\.js/);
 		assert.match(source, /scanNpmPackageArtifact\(artifactPath\)/);
+		assert.match(source, /preserveNpmPackageArtifact\(artifactPath, approvedArtifactPath, artifact\)/);
+		assert.match(source, /join\(root, "\.omcs", "release"\)/);
+		assert.match(source, /approved artifact.*artifact sha256/is);
 		assert.doesNotMatch(source, /pack[^\n]+--dry-run/);
 	});
 

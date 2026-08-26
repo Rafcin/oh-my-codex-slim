@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, lstatSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { basename, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const APPROVED_PACKED_MANIFEST = [
@@ -41,14 +41,28 @@ function allowed(file: string, args: string[], artifactDirectory: string): boole
 		&& args[1] === "plugins/oh-my-codex-slim";
 }
 
+function ensureSafeDirectory(path: string, privateDirectory: boolean): void {
+	try {
+		mkdirSync(path, { mode: 0o700 });
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+	}
+	const state = lstatSync(path);
+	if (state.isSymbolicLink() || !state.isDirectory() || (privateDirectory && (state.mode & 0o077) !== 0)) {
+		throw new Error("verify:release refused an unsafe approved artifact directory");
+	}
+}
+
 async function main(): Promise<void> {
 	const releaseEnvironmentModule = "./release-environment.ts";
 	const { buildReleaseEnvironment } = await import(releaseEnvironmentModule) as typeof import("./release-environment.js");
 	const publicSecretScanModule = "./public-secret-scan.ts";
-	const { scanNpmPackageArtifact } = await import(publicSecretScanModule) as typeof import("./public-secret-scan.js");
-	const root = process.cwd();
+	const { preserveNpmPackageArtifact, resolvePublicRepositoryRoot, scanNpmPackageArtifact } = await import(publicSecretScanModule) as typeof import("./public-secret-scan.js");
+	const root = resolvePublicRepositoryRoot(process.cwd());
 	const isolatedRoot = mkdtempSync(join(tmpdir(), "omcs-release-"));
 	const artifactDirectory = join(isolatedRoot, "artifact");
+	const privateStateDirectory = join(root, ".omcs");
+	const approvedArtifactDirectory = join(root, ".omcs", "release");
 	const environment = await buildReleaseEnvironment(process.env, isolatedRoot, process.execPath);
 	for (const path of [environment.HOME, environment.CODEX_HOME, environment.TMPDIR, environment.npm_config_cache, environment.npm_config_prefix]) {
 		if (path) mkdirSync(path, { recursive: true });
@@ -87,6 +101,13 @@ async function main(): Promise<void> {
 			for (const finding of artifact.findings) process.stderr.write(`release artifact: ${finding.path} [${finding.rule}]\n`);
 			throw new Error("verify:release refused an npm artifact with public-secret findings");
 		}
+		ensureSafeDirectory(privateStateDirectory, false);
+		ensureSafeDirectory(approvedArtifactDirectory, true);
+		const approvedFilename = `${filename.slice(0, -4)}-${artifact.sha256}.tgz`;
+		const approvedArtifactPath = join(approvedArtifactDirectory, approvedFilename);
+		await preserveNpmPackageArtifact(artifactPath, approvedArtifactPath, artifact);
+		const approvedRelativePath = relative(root, approvedArtifactPath).split(sep).join("/");
+		process.stdout.write(`release gate: approved artifact ${approvedRelativePath}\n`);
 		process.stdout.write(`release gate: artifact sha256 ${artifact.sha256}\n`);
 		process.stdout.write("verify:release passed every offline OMCS gate; fresh App/CLI discovery and any billed smoke remain separate.\n");
 	} finally {

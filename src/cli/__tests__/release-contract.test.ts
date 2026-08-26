@@ -114,6 +114,9 @@ test("release documentation and package surface are slim, attributed, and offlin
 	assert.match(joined, /real model.*explicit approval/is);
 	assert.match(joined, /legacy Codex Router compatibility/i);
 	assert.doesNotMatch(joined, /omcs migrate opencodex --rollback/i);
+	assert.match(joined, /\.omcs\/release\/oh-my-codex-slim-0\.1\.0-SHA256\.tgz/);
+	assert.match(joined, /npm publish --access public \.\/\.omcs\/release\//);
+	assert.match(joined, /never rebuild/i);
 	for (const prohibited of [
 		"requires tmux",
 		"telemetry is enabled",

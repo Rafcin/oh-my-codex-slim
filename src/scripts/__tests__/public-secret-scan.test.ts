@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { lstat, mkdtemp, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, readFile, readdir, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -289,6 +289,32 @@ describe("public secret scan", () => {
 				findings: [{ path: "dist/generated.js", rule: "aws-access-key" }],
 			});
 			assert.deepEqual(await readdir(root), ["oh-my-codex-slim-0.1.0.tgz"]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("preserves the exact approved npm artifact privately and never replaces different bytes", async () => {
+		const root = await mkdtemp(join(tmpdir(), "omcs-approved-package-"));
+		try {
+			const approvedDirectory = join(root, "release");
+			await mkdir(approvedDirectory, { mode: 0o700 });
+			const source = join(root, "candidate.tgz");
+			const target = join(approvedDirectory, "approved.tgz");
+			const approvedBytes = await packageTarball([{ path: "README.md", bytes: Buffer.from("approved\n") }]);
+			await writeFile(source, approvedBytes, { mode: 0o600 });
+			const expected = await publicSecretScanner.scanNpmPackageArtifact(source);
+			assert.deepEqual(await publicSecretScanner.preserveNpmPackageArtifact(source, target, expected), expected);
+			assert.deepEqual(await publicSecretScanner.preserveNpmPackageArtifact(source, target, expected), expected, "same bytes are idempotent");
+			assert.equal((await lstat(target)).mode & 0o777, 0o600);
+			assert.deepEqual(await readFile(target), approvedBytes);
+
+			const differentSource = join(root, "different.tgz");
+			const differentBytes = await packageTarball([{ path: "README.md", bytes: Buffer.from("different\n") }]);
+			await writeFile(differentSource, differentBytes, { mode: 0o600 });
+			const different = await publicSecretScanner.scanNpmPackageArtifact(differentSource);
+			await assert.rejects(() => publicSecretScanner.preserveNpmPackageArtifact(differentSource, target, different), /refuses to replace an approved npm artifact/);
+			assert.deepEqual(await readFile(target), approvedBytes);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}
