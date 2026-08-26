@@ -134,3 +134,50 @@ Result: 66 tests passed, 0 failed across 10 suites.
 
 The review's minor tautological `RouteMode` test remains ledgered for final
 review and was not broadened in this focused corrective change.
+
+## Fix round 2/5
+
+### RED evidence
+
+Command:
+
+```text
+npm run build && node --test dist/orchestration/__tests__/risk.test.js dist/orchestration/__tests__/policy.test.js dist/orchestration/__tests__/declaration.test.js
+```
+
+Observed result: the new direct-cast council-forgery test failed with
+`Missing expected exception`, proving the prior renderer accepted at least one
+duplicate, mismatched, or profile-inconsistent council state.
+
+### GREEN evidence
+
+The same focused command passed after hardening the validator. Result: 17
+tests passed, 0 failed across risk, policy, and declaration suites.
+
+The declaration validator now requires all of the following before it renders:
+
+- `enabled` council only with the `council` profile, at least two unique
+  supported lanes, unique advisers, and exact ordered lane-to-read-only-adviser
+  mapping;
+- `disabled` only with a non-council profile and no lanes or advisers; and
+- `unavailable` only with the council profile and no enabled adviser set.
+
+Direct casts covering duplicate lanes, duplicate advisers, mismatched, missing,
+and extra advisers, enabled non-council state, and inconsistent
+disabled/unavailable states all reject with the generic safe policy error.
+
+### Lint and full evidence
+
+```text
+npm run lint
+```
+
+Result: `Checked 302 files in 45ms. No fixes applied.`
+
+```text
+npm test
+```
+
+Result: 67 tests passed, 0 failed across 10 suites.
+
+`git diff --check` passed with no whitespace errors.

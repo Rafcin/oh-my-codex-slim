@@ -95,4 +95,46 @@ describe("OMCS route declarations", () => {
 
 		assert.throws(() => renderRouteDeclaration(hostile), /Invalid OMCS route declaration policy/);
 	});
+
+	it("rejects forged council profile, lane, and adviser states", () => {
+		const councilRisk = {
+			settled: true,
+			blastRadius: "wide" as const,
+			reviewRequired: true,
+			visual: false,
+			delegable: true,
+			needsResearch: false,
+			hasReproduction: true,
+			generatedCodeRisk: false,
+		};
+		const enabled = selectExecutionPolicy({
+			profile: "council",
+			risk: councilRisk,
+			councilMetadata: { supported: true, modelLanes: ["native-sol", "native-terra"] },
+		});
+		const unavailable = selectExecutionPolicy({
+			profile: "council",
+			risk: councilRisk,
+			councilMetadata: { supported: false, modelLanes: [] },
+		});
+		const disabled = selectExecutionPolicy({
+			profile: "auto",
+			risk: councilRisk,
+		});
+
+		const forged: unknown[] = [
+			{ ...enabled, council: { ...enabled.council, nativeLanes: ["native-sol", "native-sol"] } },
+			{ ...enabled, council: { ...enabled.council, advisers: ["native-sol-adviser", "native-sol-adviser"] } },
+			{ ...enabled, council: { ...enabled.council, advisers: ["native-luna-adviser", "native-terra-adviser"] } },
+			{ ...enabled, council: { ...enabled.council, advisers: ["native-sol-adviser"] } },
+			{ ...enabled, council: { ...enabled.council, advisers: ["native-sol-adviser", "native-terra-adviser", "native-luna-adviser"] } },
+			{ ...enabled, profile: "auto" },
+			{ ...disabled, profile: "council" },
+			{ ...unavailable, profile: "fast" },
+		];
+
+		for (const policy of forged) {
+			assert.throws(() => renderRouteDeclaration(policy as ExecutionPolicy), /Invalid OMCS route declaration policy/);
+		}
+	});
 });

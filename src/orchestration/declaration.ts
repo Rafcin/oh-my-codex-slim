@@ -19,9 +19,18 @@ const SKILLS = new Set<PolicySkill>(["context", "codebase-design", "research", "
 const SUPPORTING_AGENTS = new Set<SupportingAgent>(["omcs_explorer", "omcs_librarian", "omcs_oracle"]);
 const COUNCIL_LANES = new Set<CouncilLane>(["native-sol", "native-luna", "native-terra"]);
 const COUNCIL_ADVISERS = new Set<CouncilAdviser>(["native-sol-adviser", "native-luna-adviser", "native-terra-adviser"]);
+const COUNCIL_ADVISER_BY_LANE: Record<CouncilLane, CouncilAdviser> = {
+	"native-sol": "native-sol-adviser",
+	"native-luna": "native-luna-adviser",
+	"native-terra": "native-terra-adviser",
+};
 
 function isStringArray(value: unknown, allowed: ReadonlySet<string>): value is string[] {
 	return Array.isArray(value) && value.every((item) => typeof item === "string" && allowed.has(item));
+}
+
+function isUnique(values: readonly string[]): boolean {
+	return new Set(values).size === values.length;
 }
 
 function validRoute(route: unknown): route is RouteDecision {
@@ -44,16 +53,25 @@ function validRisk(risk: unknown): risk is RiskEvidence {
 		&& typeof candidate.generatedCode === "boolean";
 }
 
-function validCouncil(council: unknown): boolean {
+function validCouncil(profile: ExecutionProfile, council: unknown): boolean {
 	if (typeof council !== "object" || council === null) return false;
 	const candidate = council as Record<string, unknown>;
-	if (candidate.status === "disabled") return candidate.explicit === false && isStringArray(candidate.advisers, COUNCIL_ADVISERS) && candidate.advisers.length === 0 && isStringArray(candidate.nativeLanes, COUNCIL_LANES) && candidate.nativeLanes.length === 0;
-	if (candidate.status === "unavailable") return candidate.explicit === true && isStringArray(candidate.advisers, COUNCIL_ADVISERS) && candidate.advisers.length === 0 && isStringArray(candidate.nativeLanes, COUNCIL_LANES) && candidate.nativeLanes.length === 0;
-	return candidate.status === "enabled" && candidate.explicit === true && isStringArray(candidate.advisers, COUNCIL_ADVISERS) && isStringArray(candidate.nativeLanes, COUNCIL_LANES) && candidate.advisers.length >= 2 && candidate.advisers.length === candidate.nativeLanes.length;
+	const advisers = candidate.advisers;
+	const nativeLanes = candidate.nativeLanes;
+	if (!isStringArray(advisers, COUNCIL_ADVISERS) || !isStringArray(nativeLanes, COUNCIL_LANES)) return false;
+	if (candidate.status === "disabled") {
+		return profile !== "council" && candidate.explicit === false && advisers.length === 0 && nativeLanes.length === 0;
+	}
+	if (candidate.status === "unavailable") {
+		return profile === "council" && candidate.explicit === true && advisers.length === 0 && nativeLanes.length === 0;
+	}
+	if (candidate.status !== "enabled" || profile !== "council" || candidate.explicit !== true) return false;
+	if (nativeLanes.length < 2 || advisers.length !== nativeLanes.length || !isUnique(nativeLanes) || !isUnique(advisers)) return false;
+	return nativeLanes.every((lane, index) => advisers[index] === COUNCIL_ADVISER_BY_LANE[lane as CouncilLane]);
 }
 
 function assertRenderablePolicy(policy: ExecutionPolicy): void {
-	if (!PROFILES.has(policy.profile) || !validRoute(policy.route) || !validRisk(policy.risk) || !isStringArray(policy.skills, SKILLS) || !isStringArray(policy.supportingAgents, SUPPORTING_AGENTS) || !validCouncil(policy.council)) {
+	if (!PROFILES.has(policy.profile) || !validRoute(policy.route) || !validRisk(policy.risk) || !isStringArray(policy.skills, SKILLS) || !isStringArray(policy.supportingAgents, SUPPORTING_AGENTS) || !validCouncil(policy.profile, policy.council)) {
 		throw new Error("Invalid OMCS route declaration policy");
 	}
 }
