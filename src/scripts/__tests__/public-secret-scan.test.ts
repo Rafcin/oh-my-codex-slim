@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { lstat, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { lstat, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -21,24 +21,26 @@ describe("public secret scan", () => {
 		const root = await fixture();
 		try {
 			const letters = "a".repeat(64);
-			await writeFile(join(root, "key.pem"), ["-----BEGIN ", "PRIVATE KEY-----", letters].join(""));
+			await writeFile(join(root, "key.pem"), ["-----BEGIN ", "PRIVATE KEY-----\n", letters, "\n-----END ", "PRIVATE KEY-----"].join(""));
 			await writeFile(join(root, "tokens.txt"), ["ghp_", "b".repeat(36), "\n", "sk-proj-", "c".repeat(48), "\n", "xai-", "d".repeat(48)].join(""));
 			await writeFile(join(root, "github-pat.txt"), ["github", "_pat_", "e".repeat(40)].join(""));
 			await writeFile(join(root, "headers.txt"), ["Authorization: Bearer ", letters, "\nCookie: session=", letters].join(""));
-			await writeFile(join(root, "id.pub"), ["ssh-", "ed25519 ", letters].join(""));
+			await writeFile(join(root, "openssh.key"), ["-----BEGIN OPENSSH ", "PRIVATE KEY-----\n", letters, "\n-----END OPENSSH ", "PRIVATE KEY-----"].join(""));
 			await writeFile(join(root, "local-path.txt"), ["/Users/", "fixture-user/project"].join(""));
 			await writeFile(join(root, ".env.local"), "CONFIG_NAME=fixture\n");
+			await writeFile(join(root, ".envrc"), "CONFIG_NAME=fixture\n");
 			stage(root);
 
 			const findings = await scanPublicFiles(root);
 			assert.deepEqual(findings, [
 				{ path: ".env.local", rule: "dotenv-file" },
+				{ path: ".envrc", rule: "dotenv-file" },
 				{ path: "github-pat.txt", rule: "github-token" },
 				{ path: "headers.txt", rule: "authorization-header" },
 				{ path: "headers.txt", rule: "cookie-value" },
-				{ path: "id.pub", rule: "ssh-public-material" },
 				{ path: "key.pem", rule: "pem-private-key" },
 				{ path: "local-path.txt", rule: "local-home-path" },
+				{ path: "openssh.key", rule: "pem-private-key" },
 				{ path: "tokens.txt", rule: "github-token" },
 				{ path: "tokens.txt", rule: "openai-token" },
 				{ path: "tokens.txt", rule: "provider-token" },
@@ -59,6 +61,63 @@ describe("public secret scan", () => {
 			].join("\n"));
 			stage(root);
 			assert.deepEqual(await scanPublicFiles(root), []);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("does not let a same-line placeholder or safe word hide a later real token", async () => {
+		const root = await fixture();
+		try {
+			const real = ["sk-proj-", "q".repeat(48)].join("");
+			const placeholder = ["sk-proj-", "synthetic-placeholder-value".repeat(2)].join("");
+			await writeFile(join(root, "mixed.txt"), [placeholder, real, "example", real].join(" "));
+			stage(root);
+			assert.deepEqual(await scanPublicFiles(root), [{ path: "mixed.txt", rule: "openai-token" }]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("uses the canonical Git index even when the caller supplies an empty alternate index", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "detected.txt"), ["xai-", "r".repeat(48)].join(""));
+			stage(root);
+			const alternateIndex = join(root, "alternate.index");
+			execFileSync("git", ["read-tree", "--empty"], { cwd: root, env: { ...process.env, GIT_INDEX_FILE: alternateIndex } });
+			assert.deepEqual(await scanPublicFiles(root, { environment: {
+				...process.env,
+				GIT_INDEX_FILE: alternateIndex,
+				GIT_DIR: join(root, "untrusted-git-dir"),
+				GIT_WORK_TREE: join(root, "untrusted-work-tree"),
+				GIT_OBJECT_DIRECTORY: join(root, "untrusted-objects"),
+				GIT_NAMESPACE: "untrusted-namespace",
+			} }), [
+				{ path: "detected.txt", rule: "provider-token" },
+			]);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects a tracked file replaced between identity proof and descriptor open", async () => {
+		const root = await fixture();
+		try {
+			await writeFile(join(root, "stable.txt"), "initial\n");
+			stage(root);
+			await assert.rejects(
+				() => scanPublicFiles(root, {
+					beforeOpen: async (path) => {
+						if (path === "stable.txt") {
+							const replacement = join(root, "replacement.txt");
+							await writeFile(replacement, "replacement that changes the verified size\n");
+							await rename(replacement, join(root, path));
+						}
+					},
+				}),
+				/tracked file changed while scanning: stable\.txt/,
+			);
 		} finally {
 			await rm(root, { recursive: true, force: true });
 		}

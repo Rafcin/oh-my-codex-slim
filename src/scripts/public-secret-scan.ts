@@ -1,36 +1,61 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { constants } from "node:fs";
+import { constants, realpathSync } from "node:fs";
 import { lstat, open } from "node:fs/promises";
 import { relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const maxScanBytes = 1_000_000;
 const privateStatePath = /^(?:\.superpowers\/sdd\/|\.omcs\/|\.gjc\/)/;
+const syntheticLocalPaths = new Set(["/Users/example/", "/Users/rafs/", "/home/me/", "/home/.../"]);
 
 export interface PublicSecretFinding {
 	path: string;
 	rule: string;
 }
 
+export interface ScanPublicFilesOptions {
+	environment?: NodeJS.ProcessEnv;
+	/** Test-only deterministic seam for proving the descriptor identity check. */
+	beforeOpen?: (trackedPath: string) => Promise<void>;
+}
+
 interface Pattern {
 	rule: string;
 	pattern: RegExp;
+	value: (match: RegExpExecArray) => string;
 }
 
 const patterns: readonly Pattern[] = [
-	{ rule: "authorization-header", pattern: /\bauthorization\s*:\s*(?:bearer|basic|token)\s+(?!\[?(?:redacted|example|placeholder)\]?)[A-Za-z0-9._~+/-]{8,}/i },
-	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=(?!\[?(?:redacted|example|placeholder)\]?)[A-Za-z0-9._~+/-]{8,}/i },
-	{ rule: "github-token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})\b/ },
-	{ rule: "local-home-path", pattern: /(?:^|[\s"'(=])\/(?:Users|home)\/[A-Za-z0-9._-]+(?:\/|$)/ },
-	{ rule: "openai-token", pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,255}\b/ },
-	{ rule: "pem-private-key", pattern: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/i },
-	{ rule: "provider-token", pattern: /\b(?:xai|sk-ant|AIza)[-_]?[A-Za-z0-9_-]{20,255}\b/ },
-	{ rule: "ssh-public-material", pattern: /\bssh-(?:rsa|ed25519|ecdsa)\s+[A-Za-z0-9+/]{40,}={0,3}\b/i },
+	{ rule: "authorization-header", pattern: /\bauthorization\s*:\s*(?:bearer|basic|token)\s+([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
+	{ rule: "cookie-value", pattern: /\b(?:set-)?cookie\s*:\s*[^=\s;]+=([A-Za-z0-9._~+/-]{8,})/gi, value: (match) => match[1] ?? "" },
+	{ rule: "github-token", pattern: /\b(?:gh[pousr]_[A-Za-z0-9_]{20,255}|github_pat_[A-Za-z0-9_]{20,255})\b/g, value: (match) => match[0] },
+	{ rule: "local-home-path", pattern: /(?:^|[\s"'(=])(\/(?:Users|home)\/[A-Za-z0-9._-]+\/)/g, value: (match) => match[1] ?? "" },
+	{ rule: "openai-token", pattern: /\bsk-(?:proj-)?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
+	{ rule: "pem-private-key", pattern: /-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----\r?\n(?:[A-Za-z0-9+/=]{16,}\r?\n)+-----END (?:[A-Z0-9 ]+ )?PRIVATE KEY-----/gi, value: (match) => match[0] },
+	{ rule: "provider-token", pattern: /\b(?:xai|sk-ant|AIza)[-_]?[A-Za-z0-9_-]{20,255}\b/g, value: (match) => match[0] },
 ];
 
-function trackedFiles(root: string): string[] {
-	const output = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "buffer", maxBuffer: 16 * 1024 * 1024 });
+function sanitizedGitEnvironment(source: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+	const environment: NodeJS.ProcessEnv = {};
+	for (const [key, value] of Object.entries(source)) if (!key.startsWith("GIT_")) environment[key] = value;
+	return { ...environment, GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_COUNT: "0", GIT_OPTIONAL_LOCKS: "0" };
+}
+
+function resolveCanonicalRepository(root: string, source: NodeJS.ProcessEnv): string {
+	const start = realpathSync(root);
+	const environment = sanitizedGitEnvironment(source);
+	const reportedRoot = execFileSync("git", ["-C", start, "rev-parse", "--show-toplevel"], { encoding: "utf8", env: environment }).trim();
+	const repositoryRoot = realpathSync(reportedRoot);
+	const fromRepository = relative(repositoryRoot, start);
+	if (fromRepository === ".." || fromRepository.startsWith(`..${process.platform === "win32" ? "\\" : "/"}`)) {
+		throw new Error("public-secret-scan: Git root does not contain the requested directory");
+	}
+	return repositoryRoot;
+}
+
+function trackedFiles(root: string, environment: NodeJS.ProcessEnv): string[] {
+	const output = execFileSync("git", ["-C", root, "ls-files", "-z"], { encoding: "buffer", env: environment, maxBuffer: 16 * 1024 * 1024 });
 	return output.toString("utf8").split("\0").filter(Boolean).sort();
 }
 
@@ -48,66 +73,89 @@ function printableStrings(bytes: Buffer): string {
 	return bytes.toString("latin1").replace(/[^\x09\x0a\x0d\x20-\x7e]/g, " ");
 }
 
-function syntheticFixtureMatch(content: string, matchIndex: number, matched: string, rule: string): boolean {
-	if (rule === "local-home-path") return /\/(?:Users|home)\/(?:example|me|\.\.\.|rafs)(?:\/|$)/.test(matched);
-	const lineStart = content.lastIndexOf("\n", matchIndex) + 1;
-	const lineEnd = content.indexOf("\n", matchIndex);
-	const line = content.slice(lineStart, lineEnd < 0 ? content.length : lineEnd);
-	if (/(?:\[?(?:redacted|example|placeholder)\]?|synthetic)/i.test(line)) return true;
-	if (rule === "pem-private-key") {
-		const nextLine = content.slice(lineEnd < 0 ? content.length : lineEnd + 1).split("\n", 1)[0] ?? "";
-		return /synthetic/i.test(nextLine);
-	}
-	return false;
+function documentedPlaceholder(value: string): boolean {
+	const normalized = value.toLowerCase();
+	return /^(?:redacted|example|placeholder)(?:[-_][a-z0-9._-]+)?$/.test(normalized)
+		|| /(?:^|[-_])synthetic(?:[-_]|$)/.test(normalized);
 }
 
-function assertRegularBoundedFile(stat: { isFile(): boolean; size: number }, trackedPath: string): void {
+function documentedSyntheticLocalPath(value: string): boolean {
+	return syntheticLocalPaths.has(value);
+}
+
+function assertRegularBoundedFile(stat: { isFile(): boolean; size: number; dev: number; ino: number; nlink: number }, trackedPath: string): void {
 	if (!stat.isFile()) throw new Error(`public-secret-scan: refuses tracked non-regular file: ${trackedPath}`);
 	if (stat.size > maxScanBytes) throw new Error(`public-secret-scan: refuses oversized tracked file: ${trackedPath}`);
 }
 
-async function openTrackedFile(root: string, trackedPath: string) {
-	const path = containedPath(root, trackedPath);
-	const link = await lstat(path);
-	if (link.isSymbolicLink()) throw new Error(`public-secret-scan: refuses tracked symbolic link: ${trackedPath}`);
-	assertRegularBoundedFile(link, trackedPath);
-	const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
-	try {
-		assertRegularBoundedFile(await file.stat(), trackedPath);
-		return file;
-	} catch (error) {
-		await file.close();
-		throw error;
+function assertStableIdentity(before: { isFile(): boolean; size: number; dev: number; ino: number; nlink: number }, after: { isFile(): boolean; size: number; dev: number; ino: number; nlink: number }, trackedPath: string): void {
+	if (!after.isFile() || before.dev !== after.dev || before.ino !== after.ino || before.nlink !== after.nlink || before.size !== after.size) {
+		throw new Error(`public-secret-scan: tracked file changed while scanning: ${trackedPath}`);
 	}
 }
 
-async function readTrackedFile(root: string, trackedPath: string): Promise<Buffer> {
-	const file = await openTrackedFile(root, trackedPath);
+async function readBoundedBytes(file: Awaited<ReturnType<typeof open>>, expectedSize: number, trackedPath: string): Promise<Buffer> {
+	const bytes = Buffer.allocUnsafe(expectedSize + 1);
+	let offset = 0;
+	while (offset < bytes.length) {
+		const { bytesRead } = await file.read(bytes, offset, bytes.length - offset, offset);
+		if (bytesRead === 0) break;
+		offset += bytesRead;
+	}
+	if (offset > expectedSize) throw new Error(`public-secret-scan: refuses oversized tracked file: ${trackedPath}`);
+	return bytes.subarray(0, offset);
+}
+
+async function readTrackedFile(root: string, trackedPath: string, beforeOpen?: (trackedPath: string) => Promise<void>): Promise<Buffer> {
+	const path = containedPath(root, trackedPath);
+	const before = await lstat(path);
+	if (before.isSymbolicLink()) throw new Error(`public-secret-scan: refuses tracked symbolic link: ${trackedPath}`);
+	assertRegularBoundedFile(before, trackedPath);
+	await beforeOpen?.(trackedPath);
+	const file = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
 	try {
-		return await file.readFile();
+		const opened = await file.stat();
+		assertRegularBoundedFile(opened, trackedPath);
+		assertStableIdentity(before, opened, trackedPath);
+		const bytes = await readBoundedBytes(file, before.size, trackedPath);
+		const afterRead = await file.stat();
+		const afterPath = await lstat(path);
+		assertStableIdentity(before, afterRead, trackedPath);
+		assertStableIdentity(before, afterPath, trackedPath);
+		return bytes;
 	} finally {
 		await file.close();
 	}
 }
 
-/** Scans only Git-tracked, bounded regular files and never returns matched content. */
-export async function scanPublicFiles(root = process.cwd()): Promise<PublicSecretFinding[]> {
+function dotenvBasename(path: string): boolean {
+	return path.slice(path.lastIndexOf("/") + 1).startsWith(".env");
+}
+
+/** Scans only canonical Git-tracked, bounded regular files and never returns matched content. */
+export async function scanPublicFiles(root = process.cwd(), options: ScanPublicFilesOptions = {}): Promise<PublicSecretFinding[]> {
+	const environment = sanitizedGitEnvironment(options.environment ?? process.env);
+	const repositoryRoot = resolveCanonicalRepository(root, environment);
 	const findings: PublicSecretFinding[] = [];
-	for (const path of trackedFiles(root)) {
-		const file = await openTrackedFile(root, path);
-		await file.close();
+	for (const path of trackedFiles(repositoryRoot, environment)) {
+		const content = printableStrings(await readTrackedFile(repositoryRoot, path, options.beforeOpen));
 		if (privateStatePath.test(path)) {
 			findings.push({ path, rule: "private-run-state" });
 			continue;
 		}
-		if (/(?:^|\/)\.env(?:\.|$)/i.test(path)) {
+		if (dotenvBasename(path)) {
 			findings.push({ path, rule: "dotenv-file" });
 			continue;
 		}
-		const content = printableStrings(await readTrackedFile(root, path));
-		for (const { rule, pattern } of patterns) {
-			const match = pattern.exec(content);
-			if (match && !syntheticFixtureMatch(content, match.index, match[0], rule)) findings.push({ path, rule });
+		for (const { rule, pattern, value } of patterns) {
+			const matcher = new RegExp(pattern.source, pattern.flags);
+			let found = false;
+			for (const match of content.matchAll(matcher)) {
+				const matchedValue = value(match);
+				const safe = rule === "local-home-path" ? documentedSyntheticLocalPath(matchedValue) : documentedPlaceholder(matchedValue);
+				if (!safe) found = true;
+			}
+			if (found) findings.push({ path, rule });
 		}
 	}
 	return findings.sort((left, right) => left.path.localeCompare(right.path) || left.rule.localeCompare(right.rule));

@@ -4,6 +4,7 @@ import { spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import { buildReleaseEnvironment } from "../release-environment.js";
+import { assertApprovedPackedManifest } from "../verify-release.js";
 
 describe("release verification isolation", () => {
 	it("constructs an allowlisted environment without ambient paths or credentials", async () => {
@@ -43,5 +44,17 @@ describe("release verification isolation", () => {
 			"docs/assets/omcs-pipeline.svg", "docs/assets/omcs-routing.svg", "docs/assets/omcs-config-precedence.svg",
 			"docs/assets/omcs-configure-project.png", "docs/assets/omcs-route-declaration.png", "docs/assets/omcs-verification-receipt.png",
 		]) assert.equal(paths.has(required), true, required);
+	});
+
+	it("rejects any package-manifest omission or unexpected public file", () => {
+		const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], { cwd: process.cwd(), encoding: "utf8" });
+		assert.equal(packed.status, 0, packed.stderr);
+		const paths = (JSON.parse(packed.stdout) as Array<{ files: Array<{ path: string }> }>)[0]?.files.map((file) => file.path) ?? [];
+		assert.doesNotThrow(() => assertApprovedPackedManifest(paths));
+		assert.throws(() => assertApprovedPackedManifest(paths.filter((path) => path !== "README.md")), /missing README\.md/);
+		for (const unexpected of [
+			"plugins/oh-my-codex-slim/extra.js", "docs/.envrc", "docs/superpowers/plan.md",
+			"docs/assets/temp-render.svg", "dist/router/adapter.js", "private-key.pem", "extensionless-binary",
+		]) assert.throws(() => assertApprovedPackedManifest([...paths, unexpected]), new RegExp(`unexpected ${unexpected.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`));
 	});
 });
