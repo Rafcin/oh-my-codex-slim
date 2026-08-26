@@ -1,0 +1,94 @@
+import assert from "node:assert/strict";
+import { chmod, link, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, it } from "node:test";
+
+import {
+	__setWriteOmcsConfigHooksForTest,
+	renderOmcsConfig,
+	writeOmcsConfig,
+} from "../project-config.js";
+import { DEFAULT_OMCS_CONFIG } from "../omcs-config.js";
+
+async function fixture(): Promise<{ root: string; path: string }> {
+	const root = await mkdtemp(join(tmpdir(), "omcs-project-config-"));
+	return { root, path: join(root, "nested", "omcs.config.json") };
+}
+
+describe("ownership-safe OMCS configuration writer", () => {
+	it("creates a mode 0644 canonical config, and dry runs byte-for-byte without creating it", async () => {
+		const { root, path } = await fixture();
+		try {
+			const expected = renderOmcsConfig(DEFAULT_OMCS_CONFIG);
+			assert.deepEqual(await writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: true }), {
+				action: "would-create", path, bytes: expected.byteLength,
+			});
+			await assert.rejects(lstat(path), { code: "ENOENT" });
+			await assert.rejects(lstat(join(root, "nested")), { code: "ENOENT" });
+			assert.deepEqual(await writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false }), {
+				action: "create", path, bytes: expected.byteLength,
+			});
+			assert.deepEqual(await readFile(path), expected);
+			assert.equal((await lstat(path)).mode & 0o777, 0o644);
+		} finally { await rm(root, { recursive: true, force: true }); }
+	});
+
+	it("leaves identical bytes unchanged and refuses a different unowned file", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			await writeFile(path, renderOmcsConfig(DEFAULT_OMCS_CONFIG));
+			assert.equal((await writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false })).action, "unchanged");
+			await writeFile(path, "user-owned bytes\n");
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false }), /refuses|update|owned/i);
+		} finally { await rm(root, { recursive: true, force: true }); }
+	});
+
+	it("updates only an existing parseable OMCS file and reports dry-run updates", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			await writeFile(path, '{"version":1,"profile":"fast"}\n');
+			const config = { ...DEFAULT_OMCS_CONFIG, profile: "thorough" as const };
+			assert.equal((await writeOmcsConfig({ path, config, update: true, dryRun: true })).action, "would-update");
+			assert.equal((await writeOmcsConfig({ path, config, update: true, dryRun: false })).action, "update");
+			await writeFile(path, "not omcs\n");
+			await assert.rejects(writeOmcsConfig({ path, config, update: true, dryRun: false }), /invalid|refuses/i);
+		} finally { await rm(root, { recursive: true, force: true }); }
+	});
+
+	it("refuses symlinked files, hardlinked files, and symlinked ancestor directories", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			const target = join(root, "target.json");
+			await writeFile(target, renderOmcsConfig(DEFAULT_OMCS_CONFIG));
+			await symlink(target, path);
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /symlink|unsafe/i);
+			await rm(path);
+			await link(target, path);
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /link|unsafe/i);
+			await rm(path);
+			await symlink(join(root, "nested"), join(root, "linked-parent"));
+			await assert.rejects(writeOmcsConfig({ path: join(root, "linked-parent", "config.json"), config: DEFAULT_OMCS_CONFIG, update: false, dryRun: false }), /symlink|unsafe/i);
+		} finally { await rm(root, { recursive: true, force: true }); }
+	});
+
+	it("cleans the staging file and restores exact prior bytes after an injected commit failure", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			const before = Buffer.from('{"version":1,"profile":"fast"}\n');
+			await writeFile(path, before);
+			__setWriteOmcsConfigHooksForTest({ afterCommit: async () => { throw new Error("injected commit failure"); } });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /injected/);
+			assert.deepEqual(await readFile(path), before);
+			assert.deepEqual((await (await import("node:fs/promises")).readdir(join(root, "nested"))).filter((entry) => entry.includes(".omcs-config-")), []);
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
+			await chmod(join(root, "nested"), 0o755).catch(() => undefined);
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+});

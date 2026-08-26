@@ -11,7 +11,7 @@
     "dev": "tsc --watch",
     "lint": "biome lint src",
     "sync:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts --sync",
-		"test": "npm run build && node --test dist/cli/__tests__/package-bin-contract.test.js dist/cli/__tests__/slim-boundary.test.js dist/config/__tests__/omcs-config.test.js dist/config/__tests__/safe-reader.test.js",
+		"test": "npm run build && node --test dist/cli/__tests__/package-bin-contract.test.js dist/cli/__tests__/slim-boundary.test.js dist/cli/__tests__/command-parsing.test.js dist/cli/__tests__/config.test.js dist/config/__tests__/omcs-config.test.js dist/config/__tests__/project-config.test.js dist/config/__tests__/safe-reader.test.js",
 		"verify:skills": "tsc --noEmit && node --experimental-strip-types src/scripts/verify-skills.ts",
 		"verify:release": "node --experimental-strip-types src/scripts/verify-release.ts"
   },
@@ -37,7 +37,9 @@
 		"dist/config/generator.js",
 		"dist/config/managed-files.js",
 		"dist/config/omcs-config.js",
+		"dist/config/project-config.js",
 		"dist/config/safe-reader.js",
+		"dist/cli/config.js",
 		"dist/router/adapter.js",
 		"dist/router/commands.js",
 		"dist/router/types.js",

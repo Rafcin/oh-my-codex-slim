@@ -7,6 +7,7 @@ import { setup } from "./setup.js";
 import { status } from "./status.js";
 import { uninstall } from "./uninstall.js";
 import { update } from "./update.js";
+import { configureOmcs, showEffectiveConfig, validateOmcsConfigFile } from "./config.js";
 
 const HELP = `OMCS management CLI
 
@@ -18,6 +19,9 @@ Usage:
   omcs agents install|check|list [--dry-run] [--json]
   omcs uninstall [--dry-run] [--json]
   omcs migrate opencodex --rollback MANIFEST [--json]
+  omcs configure --scope project|global|session --profile auto|fast|thorough|council [--update] [--dry-run] [--json]
+  omcs config show --effective [--json]
+  omcs config validate [path] [--json]
 `;
 
 function writeResult(value: unknown, asJson: boolean): void {
@@ -116,6 +120,47 @@ export async function main(
 				);
 			}
 			return;
+		case "configure": {
+			let scope: "project" | "global" | "session" | undefined;
+			let profile: "auto" | "fast" | "thorough" | "council" | undefined;
+			const remaining: string[] = [];
+			for (let index = 0; index < options.length; index += 1) {
+				const option = options[index];
+				if (option !== "--scope" && option !== "--profile") { remaining.push(option!); continue; }
+				const value = options[index + 1];
+				if (option === "--scope") {
+					if (scope || !["project", "global", "session"].includes(value ?? "")) { invalid("configure"); return; }
+					scope = value as "project" | "global" | "session";
+				} else {
+					if (profile || !["auto", "fast", "thorough", "council"].includes(value ?? "")) { invalid("configure"); return; }
+					profile = value as "auto" | "fast" | "thorough" | "council";
+				}
+				index += 1;
+			}
+			const parsed = flags(remaining, ["--update", "--dry-run", "--json"]);
+			if (!scope || !profile || !parsed || (scope === "session" && remaining.includes("--update"))) { invalid("configure"); return; }
+			writeResult(await configureOmcs({ scope, profile, update: remaining.includes("--update"), dryRun: parsed.dryRun }), parsed.json);
+			return;
+		}
+		case "config": {
+			const [subcommand, ...configOptions] = options;
+			if (subcommand === "show") {
+				const parsed = flags(configOptions, ["--effective", "--json"]);
+				if (!parsed || !configOptions.includes("--effective")) { invalid("config show"); return; }
+				writeResult(await showEffectiveConfig(), parsed.json);
+				return;
+			}
+			if (subcommand === "validate") {
+				const positionals = configOptions.filter((option) => !option.startsWith("--"));
+				const switches = configOptions.filter((option) => option.startsWith("--"));
+				const parsed = flags(switches, ["--json"]);
+				if (!parsed || positionals.length > 1) { invalid("config validate"); return; }
+				writeResult(await validateOmcsConfigFile(positionals[0] ?? "omcs.config.json"), parsed.json);
+				return;
+			}
+			invalid("config");
+			return;
+		}
 		case "doctor":
 			{
 				const parsed = flags(options, ["--json"]);

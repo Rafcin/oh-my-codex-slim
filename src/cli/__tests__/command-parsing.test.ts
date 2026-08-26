@@ -8,7 +8,7 @@ import { describe, it } from "node:test";
 const cli = join(process.cwd(), "dist", "cli", "omcs.js");
 
 describe("strict OMCS command parsing", () => {
-	for (const args of [["status", "--bogus"], ["agents", "list", "trailing"], ["setup", "--dry-run", "--dry-run"], ["agents", "check", "--dry-run"], ["help", "--json"]]) {
+	for (const args of [["status", "--bogus"], ["agents", "list", "trailing"], ["setup", "--dry-run", "--dry-run"], ["agents", "check", "--dry-run"], ["help", "--json"], ["configure", "--scope", "project", "--scope", "global", "--profile", "auto"], ["configure", "--scope", "project", "--profile", "unknown"], ["configure", "--scope", "session", "--profile", "fast", "--update"], ["config", "show", "--effective", "trailing"], ["config", "validate", "one", "two"], ["config", "show", "--json", "--bogus"]]) {
 		it(`rejects ${args.join(" ")}`, () => {
 			const result = spawnSync(process.execPath, [cli, ...args], { encoding: "utf8", env: { PATH: process.env.PATH } });
 			assert.equal(result.status, 64);
