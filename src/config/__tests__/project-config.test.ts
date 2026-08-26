@@ -81,10 +81,11 @@ describe("ownership-safe OMCS configuration writer", () => {
 			await mkdir(join(root, "nested"));
 			const before = Buffer.from('{"version":1,"profile":"fast"}\n');
 			await writeFile(path, before);
-			__setWriteOmcsConfigHooksForTest({ afterCommit: async () => { throw new Error("injected commit failure"); } });
+			__setWriteOmcsConfigHooksForTest({ beforeVisibleCommit: async () => { throw new Error("injected commit failure"); } });
 			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /injected/);
 			assert.deepEqual(await readFile(path), before);
-			assert.deepEqual((await (await import("node:fs/promises")).readdir(join(root, "nested"))).filter((entry) => entry.includes(".omcs-config-")), []);
+			const entries = await (await import("node:fs/promises")).readdir(join(root, "nested"));
+			assert.deepEqual(entries.filter((entry) => entry.includes(".omcs-config-") || entry.endsWith(".stage")), []);
 		} finally {
 			__setWriteOmcsConfigHooksForTest();
 			await chmod(join(root, "nested"), 0o755).catch(() => undefined);
@@ -120,14 +121,14 @@ describe("ownership-safe OMCS configuration writer", () => {
 		}
 	});
 
-	it("detects a swapped containing directory before staging and never writes through it", async () => {
+	it("detects a swapped containing directory in the post-verify pre-open interval and never writes through it", async () => {
 		const { root, path } = await fixture();
 		try {
 			const nested = join(root, "nested");
 			const outside = join(root, "outside");
 			await mkdir(nested);
 			await mkdir(outside);
-			__setWriteOmcsConfigHooksForTest({ beforeStage: async () => {
+			__setWriteOmcsConfigHooksForTest({ beforeStageDirectoryOpen: async () => {
 				await rename(nested, join(root, "moved-nested"));
 				await symlink(outside, nested);
 			} });
@@ -151,7 +152,7 @@ describe("ownership-safe OMCS configuration writer", () => {
 		}
 	});
 
-	it("preserves concurrent content and recovery bytes when rollback cannot restore", async () => {
+	it("never rolls back a visible commit when a concurrent replacement appears after proof", async () => {
 		const { root, path } = await fixture();
 		try {
 			await mkdir(join(root, "nested"));
@@ -159,14 +160,33 @@ describe("ownership-safe OMCS configuration writer", () => {
 			await writeFile(path, before);
 			const concurrent = Buffer.from("concurrent user bytes\n");
 			__setWriteOmcsConfigHooksForTest({
-				afterCommit: async () => { throw new Error("injected commit failure"); },
-				beforeRestore: async () => { await writeFile(path, concurrent); },
+				afterVisibleCommit: async () => {
+					await writeFile(path, concurrent);
+					throw new Error("injected cleanup failure");
+				},
 			});
-			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /rollback|restore|injected/i);
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /recoverable|injected|commit/i);
 			assert.deepEqual(await readFile(path), concurrent);
 			const entries = await readdir(join(root, "nested"));
 			assert.deepEqual(entries.filter((entry) => entry.endsWith(".tmp")), []);
 			assert.ok(entries.some((entry) => entry.endsWith(".quarantine")), "prior bytes must remain recoverable");
+		} finally {
+			__setWriteOmcsConfigHooksForTest();
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
+	it("rejects a swapped private stage source before linking and never exposes its bytes", async () => {
+		const { root, path } = await fixture();
+		try {
+			await mkdir(join(root, "nested"));
+			const before = Buffer.from('{"version":1,"profile":"fast"}\n');
+			await writeFile(path, before);
+			const untrusted = Buffer.from("untrusted stage source\n");
+			__setWriteOmcsConfigHooksForTest({ beforeStageSourceLink: async (stagePath) => { await writeFile(stagePath, untrusted); } });
+			await assert.rejects(writeOmcsConfig({ path, config: DEFAULT_OMCS_CONFIG, update: true, dryRun: false }), /stage|changed|unsafe/i);
+			assert.deepEqual(await readFile(path), before);
+			assert.doesNotMatch((await readFile(path)).toString(), /untrusted/);
 		} finally {
 			__setWriteOmcsConfigHooksForTest();
 			await rm(root, { recursive: true, force: true });
