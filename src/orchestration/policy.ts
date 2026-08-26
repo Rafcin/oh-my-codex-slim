@@ -12,6 +12,9 @@ export interface WorkSignals {
 	needsResearch: boolean;
 	hasReproduction: boolean;
 	generatedCodeRisk: boolean;
+	needsRepositoryMapping?: boolean;
+	needsDifficultDiagnosis?: boolean;
+	needsArchitectureAdvice?: boolean;
 }
 
 /** Non-secret capability evidence supplied by the native runtime. */
@@ -19,6 +22,10 @@ export interface CouncilMetadata {
 	supported: boolean;
 	modelLanes: readonly string[];
 }
+
+export type CouncilLane = "native-sol" | "native-luna" | "native-terra";
+export type CouncilAdviser = "native-sol-adviser" | "native-luna-adviser" | "native-terra-adviser";
+export type SupportingAgent = "omcs_explorer" | "omcs_librarian" | "omcs_oracle";
 
 export interface PolicyInput {
 	profile: ExecutionProfile;
@@ -37,9 +44,19 @@ export type PolicySkill =
 	| "code-review";
 
 export interface CouncilOverlay {
-	enabled: boolean;
+	status: "disabled" | "unavailable" | "enabled";
 	explicit: boolean;
-	implementer: null;
+	advisers: CouncilAdviser[];
+	nativeLanes: CouncilLane[];
+}
+
+export interface RiskEvidence {
+	blastRadius: BlastRadius;
+	unsettled: boolean;
+	reviewRequired: boolean;
+	visual: boolean;
+	research: boolean;
+	generatedCode: boolean;
 }
 
 export interface AntiSlopGate {
@@ -54,16 +71,23 @@ export interface ExecutionPolicy {
 	route: RouteDecision;
 	council: CouncilOverlay;
 	skills: PolicySkill[];
-	risk: string;
+	risk: RiskEvidence;
+	supportingAgents: SupportingAgent[];
 	antiSlop: AntiSlopGate;
 }
 
-const SUPPORTED_COUNCIL_LANES = new Set(["native-sol", "native-luna", "native-terra"]);
+const COUNCIL_LANES: readonly CouncilLane[] = ["native-sol", "native-luna", "native-terra"];
+const COUNCIL_ADVISERS: Record<CouncilLane, CouncilAdviser> = {
+	"native-sol": "native-sol-adviser",
+	"native-luna": "native-luna-adviser",
+	"native-terra": "native-terra-adviser",
+};
 
-function hasProvenCouncilDiversity(metadata: CouncilMetadata | undefined): boolean {
-	if (!metadata?.supported) return false;
-	const lanes = new Set(metadata.modelLanes.filter((lane) => SUPPORTED_COUNCIL_LANES.has(lane)));
-	return lanes.size >= 2;
+function provenCouncilLanes(metadata: CouncilMetadata | undefined): CouncilLane[] {
+	if (!metadata?.supported) return [];
+	const reported = new Set(metadata.modelLanes);
+	const lanes = COUNCIL_LANES.filter((lane) => reported.has(lane));
+	return lanes.length >= 2 ? [...lanes] : [];
 }
 
 function chooseRoute(profile: ExecutionProfile, risk: WorkSignals): RouteDecision {
@@ -99,15 +123,23 @@ function selectSkills(profile: ExecutionProfile, risk: WorkSignals, route: Route
 	return skills;
 }
 
-function describeRisk(risk: WorkSignals): string {
-	const reasons: string[] = [];
-	if (!risk.settled) reasons.push("unsettled scope");
-	reasons.push(`${risk.blastRadius} blast radius`);
-	if (risk.reviewRequired) reasons.push("review required");
-	if (risk.visual) reasons.push("visual change");
-	if (risk.needsResearch) reasons.push("research required");
-	if (risk.generatedCodeRisk) reasons.push("generated-code risk");
-	return reasons.join("; ");
+function selectSupportingAgents(risk: WorkSignals): SupportingAgent[] {
+	const agents: SupportingAgent[] = [];
+	if (risk.needsRepositoryMapping) agents.push("omcs_explorer");
+	if (risk.needsResearch) agents.push("omcs_librarian");
+	if (risk.needsDifficultDiagnosis || risk.needsArchitectureAdvice) agents.push("omcs_oracle");
+	return agents;
+}
+
+function riskEvidence(risk: WorkSignals): RiskEvidence {
+	return {
+		blastRadius: risk.blastRadius,
+		unsettled: !risk.settled,
+		reviewRequired: risk.reviewRequired,
+		visual: risk.visual,
+		research: risk.needsResearch,
+		generatedCode: risk.generatedCodeRisk,
+	};
 }
 
 /** Maps a resolved profile and observed work signals to visible, fail-closed execution gates. */
@@ -115,17 +147,25 @@ export function selectExecutionPolicy(input: PolicyInput): ExecutionPolicy {
 	const route = chooseRoute(input.profile, input.risk);
 	const thorough = input.profile === "thorough" || input.profile === "council";
 	const antiSlopEnabled = thorough || route.mode === "audit" || route.mode === "full" || input.risk.generatedCodeRisk;
+	const councilLanes = input.profile === "council" ? provenCouncilLanes(input.councilMetadata) : [];
+	const council: CouncilOverlay = input.profile !== "council"
+		? { status: "disabled", explicit: false, advisers: [], nativeLanes: [] }
+		: councilLanes.length === 0
+			? { status: "unavailable", explicit: true, advisers: [], nativeLanes: [] }
+			: {
+				status: "enabled",
+				explicit: true,
+				advisers: councilLanes.map((lane) => COUNCIL_ADVISERS[lane]),
+				nativeLanes: councilLanes,
+			};
 
 	return {
 		profile: input.profile,
 		route,
-		council: {
-			enabled: input.profile === "council" && hasProvenCouncilDiversity(input.councilMetadata),
-			explicit: input.profile === "council",
-			implementer: null,
-		},
+		council,
 		skills: selectSkills(input.profile, input.risk, route),
-		risk: describeRisk(input.risk),
+		risk: riskEvidence(input.risk),
+		supportingAgents: selectSupportingAgents(input.risk),
 		antiSlop: {
 			enabled: antiSlopEnabled,
 			scope: "changed-files",

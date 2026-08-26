@@ -28,9 +28,15 @@ describe("OMCS execution policy", () => {
 		}), {
 			profile: "council",
 			route: { mode: "full", implementer: "omcs_terra_fixer", reviewer: "omcs_reviewer" },
-			council: { enabled: true, explicit: true, implementer: null },
+			council: {
+				status: "enabled",
+				explicit: true,
+				advisers: ["native-sol-adviser", "native-terra-adviser"],
+				nativeLanes: ["native-sol", "native-terra"],
+			},
 			skills: ["context", "codebase-design", "plan", "tdd", "ai-slop-cleaner", "verification", "code-review"],
-			risk: "wide blast radius; review required",
+			risk: { blastRadius: "wide", unsettled: false, reviewRequired: true, visual: false, research: false, generatedCode: false },
+			supportingAgents: [],
 			antiSlop: { enabled: true, scope: "changed-files", beforeReview: true, invalidatesVerificationOnEdit: true },
 		});
 	});
@@ -43,7 +49,16 @@ describe("OMCS execution policy", () => {
 		});
 
 		assert.equal(policy.route.mode, "full");
-		assert.deepEqual(policy.council, { enabled: false, explicit: true, implementer: null });
+		assert.deepEqual(policy.council, { status: "unavailable", explicit: true, advisers: [], nativeLanes: [] });
+	});
+
+	it("keeps non-council profiles visibly council-disabled", () => {
+		assert.deepEqual(selectExecutionPolicy({ profile: "auto", risk: wideRisk }).council, {
+			status: "disabled",
+			explicit: false,
+			advisers: [],
+			nativeLanes: [],
+		});
 	});
 
 	it("keeps fast work direct while preserving verification", () => {
@@ -71,5 +86,20 @@ describe("OMCS execution policy", () => {
 		assert.deepEqual(policy.route, { mode: "audit", reviewer: "omcs_reviewer" });
 		assert.deepEqual(policy.skills, ["context", "codebase-design", "research", "plan", "tdd", "ai-slop-cleaner", "verification", "code-review"]);
 		assert.equal(policy.antiSlop.enabled, true);
+	});
+
+	it("selects supporting agents without changing the delivery route", () => {
+		const policy = selectExecutionPolicy({
+			profile: "auto",
+			risk: {
+				...wideRisk,
+				needsRepositoryMapping: true,
+				needsResearch: true,
+				needsDifficultDiagnosis: true,
+			},
+		});
+
+		assert.deepEqual(policy.route, { mode: "full", implementer: "omcs_terra_fixer", reviewer: "omcs_reviewer" });
+		assert.deepEqual(policy.supportingAgents, ["omcs_explorer", "omcs_librarian", "omcs_oracle"]);
 	});
 });
