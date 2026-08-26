@@ -52,7 +52,7 @@ Evidence excerpt:
 
 ```text
 expected: /instructions-path:.*\/\.omx\/state\/sessions\/omx-.*\/AGENTS\.md/
-actual: fake-codex:exec --model gpt-5 say hi -c model_instructions_file="/home/.../.omx/team/continue-from-clean-commit-810/worktrees/worker-3/AGENTS.md"
+actual: fake-codex:exec --model gpt-5 say hi -c model_instructions_file="/Users/example/.omx/team/continue-from-clean-commit-810/worktrees/worker-3/AGENTS.md"
 ```
 
 ### 2. `dist/hooks/__tests__/codebase-map.test.js`

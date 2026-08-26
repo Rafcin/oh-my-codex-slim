@@ -1152,7 +1152,7 @@ describe("codex hooks helpers", () => {
   });
 
   it("derives managed trust keys from the final merged hook group layout", () => {
-    const hooksPath = "/home/me/.codex/hooks.json";
+    const hooksPath = "/Users/example/.codex/hooks.json";
     const hooksContent = mergeManagedCodexHooksConfig(
       JSON.stringify({
         hooks: {
@@ -1179,7 +1179,7 @@ describe("codex hooks helpers", () => {
   });
 
   it("distinguishes an absent final hooks artifact from fallback and scanned content", () => {
-    const hooksPath = "/home/me/.codex/hooks.json";
+    const hooksPath = "/Users/example/.codex/hooks.json";
     const fallbackState = buildManagedCodexHookTrustState(hooksPath, "/repo");
     const fallbackToml = buildManagedCodexHookTrustToml(hooksPath, "/repo");
     const normalFinalContent = mergeManagedCodexHooksConfig(
@@ -1219,17 +1219,17 @@ describe("codex hooks helpers", () => {
   });
 
   it("builds trust state only for generated OMX hook handlers", () => {
-    const state = buildManagedCodexHookTrustState("/home/me/.codex/hooks.json", "/repo");
+    const state = buildManagedCodexHookTrustState("/Users/example/.codex/hooks.json", "/repo");
     const keys = Object.keys(state).sort();
 
     assert.deepEqual(keys, [
-      "/home/me/.codex/hooks.json:post_compact:0:0",
-      "/home/me/.codex/hooks.json:post_tool_use:0:0",
-      "/home/me/.codex/hooks.json:pre_compact:0:0",
-      "/home/me/.codex/hooks.json:pre_tool_use:0:0",
-      "/home/me/.codex/hooks.json:session_start:0:0",
-      "/home/me/.codex/hooks.json:stop:0:0",
-      "/home/me/.codex/hooks.json:user_prompt_submit:0:0",
+      "/Users/example/.codex/hooks.json:post_compact:0:0",
+      "/Users/example/.codex/hooks.json:post_tool_use:0:0",
+      "/Users/example/.codex/hooks.json:pre_compact:0:0",
+      "/Users/example/.codex/hooks.json:pre_tool_use:0:0",
+      "/Users/example/.codex/hooks.json:session_start:0:0",
+      "/Users/example/.codex/hooks.json:stop:0:0",
+      "/Users/example/.codex/hooks.json:user_prompt_submit:0:0",
     ]);
     for (const hookState of Object.values(state)) {
       assert.match(hookState.trusted_hash, /^sha256:[a-f0-9]{64}$/);

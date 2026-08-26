@@ -84,11 +84,15 @@ describe("public secret scan", () => {
 		try {
 			await writeFile(join(root, "home-a.txt"), ["/Users/", "rafs/.codex"].join(""));
 			await writeFile(join(root, "home-b.txt"), ["/Users/", "alice"].join(""));
+			await writeFile(join(root, "home-c.txt"), ["/", "home/", "alice/project"].join(""));
+			await writeFile(join(root, "home-d.txt"), ["/", "home/", "alice"].join(""));
 			stage(root);
 			const findings = await scanPublicFiles(root);
 			assert.deepEqual(findings, [
 				{ path: "home-a.txt", rule: "local-home-path" },
 				{ path: "home-b.txt", rule: "local-home-path" },
+				{ path: "home-c.txt", rule: "local-home-path" },
+				{ path: "home-d.txt", rule: "local-home-path" },
 			]);
 			assert.doesNotMatch(JSON.stringify(findings), /rafs|alice/i);
 		} finally {
