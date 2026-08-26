@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { constants, realpathSync } from "node:fs";
-import { lstat, open } from "node:fs/promises";
-import { dirname, posix, relative, resolve } from "node:path";
+import { link, lstat, open, unlink } from "node:fs/promises";
+import { basename, dirname, join, posix, relative, resolve } from "node:path";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
@@ -31,6 +31,11 @@ export interface NpmPackageArtifactScan {
 	sha256: string;
 	paths: string[];
 	findings: PublicSecretFinding[];
+}
+
+export interface PreserveNpmPackageArtifactOptions {
+	/** Test-only deterministic seam for proving failed-stage cleanup. */
+	writeStage?: (file: Awaited<ReturnType<typeof open>>, bytes: Buffer) => Promise<void>;
 }
 
 interface Pattern {
@@ -280,11 +285,30 @@ function sameArtifactScan(left: NpmPackageArtifactScan, right: NpmPackageArtifac
 		&& JSON.stringify(left.findings) === JSON.stringify(right.findings);
 }
 
+async function syncDirectory(path: string): Promise<void> {
+	const directory = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
+	try {
+		await directory.sync();
+	} finally {
+		await directory.close();
+	}
+}
+
+async function removeOwnedStage(path: string, identity: { dev: number; ino: number } | undefined): Promise<void> {
+	if (!identity) return;
+	const named = await lstat(path);
+	if (named.isSymbolicLink() || !named.isFile() || named.dev !== identity.dev || named.ino !== identity.ino) {
+		throw new Error("public-secret-scan: refuses to remove a changed approved artifact stage");
+	}
+	await unlink(path);
+}
+
 /** Preserves one previously scanned private artifact with exclusive, no-clobber ownership. */
 export async function preserveNpmPackageArtifact(
 	sourcePath: string,
 	targetPath: string,
 	expected: NpmPackageArtifactScan,
+	options: PreserveNpmPackageArtifactOptions = {},
 ): Promise<NpmPackageArtifactScan> {
 	if (expected.findings.length > 0) throw new Error("public-secret-scan: refuses to preserve an unapproved npm artifact");
 	const source = resolve(sourcePath);
@@ -299,26 +323,44 @@ export async function preserveNpmPackageArtifact(
 		throw new Error("public-secret-scan: npm artifact changed after approval");
 	}
 
-	let file: Awaited<ReturnType<typeof open>>;
+	const stagePath = join(dirname(target), `.${basename(target)}.${randomUUID()}.stage`);
+	let stageIdentity: { dev: number; ino: number } | undefined;
 	try {
-		file = await open(target, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+		const file = await open(stagePath, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
+		try {
+			const opened = await file.stat();
+			stageIdentity = { dev: opened.dev, ino: opened.ino };
+			await file.chmod(0o600);
+			if (options.writeStage) await options.writeStage(file, bytes);
+			else await file.writeFile(bytes);
+			await file.sync();
+			const written = await file.stat();
+			if (!written.isFile() || written.nlink !== 1 || (written.mode & 0o077) !== 0 || written.size !== bytes.byteLength) {
+				throw new Error("public-secret-scan: approved npm artifact stage was not private and exact");
+			}
+		} finally {
+			await file.close();
+		}
+		const staged = await scanNpmPackageArtifact(stagePath);
+		if (!sameArtifactScan(staged, expected)) throw new Error("public-secret-scan: approved npm artifact stage changed while preserving");
 	} catch (error) {
+		await removeOwnedStage(stagePath, stageIdentity);
+		await syncDirectory(dirname(target));
+		throw error;
+	}
+
+	try {
+		await link(stagePath, target);
+	} catch (error) {
+		await removeOwnedStage(stagePath, stageIdentity);
+		await syncDirectory(dirname(target));
 		if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
 		const existing = await scanNpmPackageArtifact(target);
 		if (sameArtifactScan(existing, expected)) return existing;
 		throw new Error("public-secret-scan: refuses to replace an approved npm artifact");
 	}
-	try {
-		await file.chmod(0o600);
-		await file.writeFile(bytes);
-		await file.sync();
-		const written = await file.stat();
-		if (!written.isFile() || written.nlink !== 1 || (written.mode & 0o077) !== 0 || written.size !== bytes.byteLength) {
-			throw new Error("public-secret-scan: approved npm artifact write was not private and exact");
-		}
-	} finally {
-		await file.close();
-	}
+	await removeOwnedStage(stagePath, stageIdentity);
+	await syncDirectory(dirname(target));
 	const preserved = await scanNpmPackageArtifact(target);
 	if (!sameArtifactScan(preserved, expected)) throw new Error("public-secret-scan: approved npm artifact changed while preserving");
 	return preserved;

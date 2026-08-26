@@ -319,4 +319,26 @@ describe("public secret scan", () => {
 			await rm(root, { recursive: true, force: true });
 		}
 	});
+
+	it("does not expose a partial final artifact when an approved-stage write fails", async () => {
+		const root = await mkdtemp(join(tmpdir(), "omcs-approved-package-failure-"));
+		try {
+			const approvedDirectory = join(root, "release");
+			await mkdir(approvedDirectory, { mode: 0o700 });
+			const source = join(root, "candidate.tgz");
+			const target = join(approvedDirectory, "approved.tgz");
+			await writeFile(source, await packageTarball([{ path: "README.md", bytes: Buffer.from("approved\n") }]), { mode: 0o600 });
+			const expected = await publicSecretScanner.scanNpmPackageArtifact(source);
+			await assert.rejects(() => publicSecretScanner.preserveNpmPackageArtifact(source, target, expected, {
+				writeStage: async (file, bytes) => {
+					await file.write(bytes.subarray(0, Math.floor(bytes.byteLength / 2)));
+					throw new Error("injected approved-stage write failure");
+				},
+			}), /injected approved-stage write failure/);
+			await assert.rejects(lstat(target), /ENOENT/);
+			assert.deepEqual(await readdir(approvedDirectory), []);
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
 });
