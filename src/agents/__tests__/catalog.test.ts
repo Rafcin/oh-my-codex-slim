@@ -30,12 +30,10 @@ describe("native agent catalog", () => {
 
 	it("assigns the native routing, implementation, visual-proof, and review accountabilities", () => {
 		const byName = Object.fromEntries(AGENT_CATALOG.map((agent) => [agent.name, agent]));
-		assert.match(byName.omcs_architect.developerInstructions, /intent/i);
-		assert.match(byName.omcs_architect.developerInstructions, /architecture/i);
-		assert.match(byName.omcs_architect.developerInstructions, /routing/i);
-		assert.match(byName.omcs_architect.developerInstructions, /decompos/i);
-		assert.match(byName.omcs_architect.developerInstructions, /parent verification/i);
-		assert.match(byName.omcs_architect.developerInstructions, /acceptance/i);
+		assert.match(
+			byName.omcs_architect.developerInstructions,
+			/Own request intent, architecture, routing, decomposition, parent verification, and final acceptance\./,
+		);
 
 		for (const name of ["omcs_explorer", "omcs_librarian", "omcs_oracle"] as const) {
 			assert.equal(byName[name].permission, "read-only");
@@ -54,9 +52,10 @@ describe("native agent catalog", () => {
 		assert.match(byName.omcs_designer.developerInstructions, /visual proof/i);
 		assert.match(byName.omcs_reviewer.developerInstructions, /fresh/i);
 		assert.match(byName.omcs_reviewer.developerInstructions, /behaviorally read-only/i);
-		assert.match(byName.omcs_reviewer.developerInstructions, /ship, fix-first, or rethink/i);
-		assert.match(byName.omcs_reviewer.developerInstructions, /invalidates.*verdict/i);
-		assert.match(byName.omcs_reviewer.developerInstructions, /parent reverification/i);
+		assert.match(
+			byName.omcs_reviewer.developerInstructions,
+			/Any post-review edit invalidates the ship, fix-first, or rethink verdict and requires parent reverification followed by a fresh review\./,
+		);
 	});
 
 	it("renders complete Codex TOML and grants read-only sandbox only to read-only roles", () => {

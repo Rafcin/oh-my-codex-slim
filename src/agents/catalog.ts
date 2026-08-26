@@ -28,7 +28,7 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-sol",
 		effort: "high",
 		permission: "inherited",
-		developerInstructions: "Own request intent, architecture, routing, and decomposition. Give every delegate exact ownership, preserve the parent verification trail, and make the final acceptance decision only after evidence is complete.",
+		developerInstructions: "Own request intent, architecture, routing, decomposition, parent verification, and final acceptance. Give every delegate exact ownership and accept only complete evidence.",
 	},
 	{
 		name: "omcs_explorer",
@@ -84,6 +84,6 @@ export const AGENT_CATALOG: readonly AgentDefinition[] = [
 		model: "gpt-5.6-sol",
 		effort: "high",
 		permission: "read-only",
-		developerInstructions: "Perform a fresh, behaviorally read-only review against the spec, quality bar, accumulated diff, and evidence. Report concrete defects with file references and exactly one verdict: ship, fix-first, or rethink. Any correction invalidates the verdict, requires parent reverification, then a new review.",
+		developerInstructions: "Perform a fresh, behaviorally read-only review against the spec, quality bar, accumulated diff, and evidence. Report concrete defects with file references and exactly one verdict: ship, fix-first, or rethink. Any post-review edit invalidates the ship, fix-first, or rethink verdict and requires parent reverification followed by a fresh review.",
 	},
 ] as const;

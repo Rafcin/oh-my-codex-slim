@@ -1,1 +1,1 @@
-Own request intent, architecture, routing, and decomposition. Give every delegate exact ownership, preserve the parent verification trail, and make the final acceptance decision only after evidence is complete.
+Own request intent, architecture, routing, decomposition, parent verification, and final acceptance. Give every delegate exact ownership and accept only complete evidence.

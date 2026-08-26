@@ -19,9 +19,10 @@ function prompt(name: string): string {
 describe('agents/definitions', () => {
 	it('keeps every native-agent prompt aligned with its bounded role contract', () => {
 		const architect = prompt('architect');
-		for (const responsibility of ['intent', 'architecture', 'routing', 'decomposition', 'parent verification', 'acceptance']) {
-			assert.match(architect, new RegExp(responsibility, 'i'));
-		}
+		assert.match(
+			architect,
+			/Own request intent, architecture, routing, decomposition, parent verification, and final acceptance\./,
+		);
 
 		for (const name of ['explorer', 'librarian', 'oracle']) {
 			const contents = prompt(name);
@@ -42,9 +43,10 @@ describe('agents/definitions', () => {
 		const reviewer = prompt('reviewer');
 		assert.match(reviewer, /fresh/i);
 		assert.match(reviewer, /behaviorally read-only/i);
-		assert.match(reviewer, /ship, fix-first, or rethink/i);
-		assert.match(reviewer, /invalidates.*verdict/i);
-		assert.match(reviewer, /parent reverification/i);
+		assert.match(
+			reviewer,
+			/Any post-review edit invalidates the ship, fix-first, or rethink verdict and requires parent reverification followed by a fresh review\./,
+		);
 	});
 
   it('returns known agents and undefined for unknown names', () => {
