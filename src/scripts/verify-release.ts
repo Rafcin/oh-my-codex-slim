@@ -5,6 +5,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const APPROVED_PACKED_MANIFEST = [
+	".upstream-revisions.json",
 	".agents/plugins/marketplace.json",
 	"LICENSE", "README.md", "THIRD_PARTY_NOTICES.md",
 	"dist/agents/catalog.js", "dist/agents/install.js",

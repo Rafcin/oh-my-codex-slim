@@ -31,13 +31,9 @@ Do not use a real provider prompt as a diagnostic without explicit approval for 
 
 ## Legacy migration rollback
 
-If an earlier OMCS experiment migrated Codex away from OpenCodex, preserve the exact mode-`0600` migration manifest and backups. The rollback is intentionally explicit:
+If an earlier OMCS experiment migrated Codex away from OpenCodex, preserve the exact mode-`0600` migration manifest and backups. The public OMCS CLI does not expose legacy migration or rollback commands; its `migrate` command fails closed because no Router runtime is shipped. Recovery requires the attributed repository-only compatibility source at the exact matching revision and a separate, reviewed recovery plan.
 
-```bash
-omcs migrate opencodex --rollback /absolute/path/to/opencodex-migration.json --json
-```
-
-New OpenCodex-to-Codex-Router cutovers are not supported. Never delete rollback evidence merely to make health output green.
+New OpenCodex-to-Codex-Router cutovers are not supported. Never delete rollback evidence merely to make health output green, and never guess at a rollback command.
 
 ## Plugin is not visible
 

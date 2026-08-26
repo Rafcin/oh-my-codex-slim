@@ -27,9 +27,10 @@ test("release documentation and package surface are slim, attributed, and offlin
 		"dist/orchestration/declaration.js",
 		"dist/orchestration/receipt.js",
 		"schema/omcs.schema.json",
-		"README.md",
-		"docs/opencodex.md",
-		"THIRD_PARTY_NOTICES.md",
+			"README.md",
+			"docs/opencodex.md",
+			"THIRD_PARTY_NOTICES.md",
+			".upstream-revisions.json",
 	]) {
 		assert.ok(
 			packageDocument.files?.includes(required),
@@ -56,8 +57,9 @@ test("release documentation and package surface are slim, attributed, and offlin
 		"dist/config/project-config.js",
 		"dist/orchestration/policy.js",
 		"dist/orchestration/receipt.js",
-		"schema/omcs.schema.json",
-	]) assert.equal(packedPaths.has(required), true, `missing packaged ${required}`);
+			"schema/omcs.schema.json",
+			".upstream-revisions.json",
+		]) assert.equal(packedPaths.has(required), true, `missing packaged ${required}`);
 
 	const isolated = await mkdtemp(join(tmpdir(), "omcs-cli-without-router-"));
 	try {
