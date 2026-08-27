@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { chmod, mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
@@ -13,11 +13,50 @@ import {
 	buildPinnedMcpManifest,
 	codexRunDisposition,
 	executeBenchmark,
+	resolveExecutableLauncher,
 	runProcess,
 } from "../execution.js";
 import { parseBenchmarkSuite } from "../manifest.js";
 
+async function processDisappeared(pid: number): Promise<boolean> {
+	for (let attempt = 0; attempt < 80; attempt += 1) {
+		try {
+			process.kill(pid, 0);
+		} catch {
+			return true;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	return false;
+}
+
 describe("isolated benchmark execution", () => {
+	it("launches an env-node Codex script with the pinned Node runtime", async () => {
+		const root = await mkdtemp(join(tmpdir(), "omcs-benchmark-codex-launcher-"));
+		try {
+			const launcher = join(root, "codex");
+			await writeFile(
+				launcher,
+				'#!/usr/bin/env node\nprocess.stdout.write("codex-cli synthetic\\n");\n',
+			);
+			await chmod(launcher, 0o700);
+			const resolved = await resolveExecutableLauncher(launcher);
+			assert.deepEqual(resolved, {
+				command: process.execPath,
+				argsPrefix: [await realpath(launcher)],
+			});
+			const result = await runProcess(resolved.command, [...resolved.argsPrefix, "--version"], {
+				cwd: root,
+				timeoutMs: 10_000,
+				environment: benchmarkModelEnvironment(undefined),
+			});
+			assert.equal(result.status, 0, result.stderr);
+			assert.equal(result.stdout, "codex-cli synthetic\n");
+		} finally {
+			await rm(root, { recursive: true, force: true });
+		}
+	});
+
 	it("replaces the caller PATH with the private benchmark tool boundary", () => {
 		const environment = benchmarkModelEnvironment("/private/benchmark-tools");
 		assert.equal(
@@ -75,7 +114,7 @@ process.stdout.write(String(child.pid));`,
 		assert.equal(result.status, 0);
 		const descendantPid = Number.parseInt(result.stdout, 10);
 		assert.equal(Number.isInteger(descendantPid), true);
-		assert.throws(() => process.kill(descendantPid, 0));
+		assert.equal(await processDisappeared(descendantPid), true);
 	});
 
 	it("streams final usage even when the retained transcript is truncated", async () => {

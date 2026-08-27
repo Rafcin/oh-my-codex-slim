@@ -54,7 +54,7 @@ describe("release verification isolation", () => {
 		assert.doesNotMatch(source, /pack[^\n]+--dry-run/);
 	});
 
-	it("packs the public OMCS runtime, policy, provenance, guides, diagrams, and redacted screenshots", () => {
+	it("packs the public OMCS runtime, policy, provenance, guides, diagrams, and sanitized terminal views", () => {
 		const packed = spawnSync("npm", ["pack", "--dry-run", "--json"], {
 			cwd: process.cwd(),
 			encoding: "utf8",
@@ -91,9 +91,9 @@ describe("release verification isolation", () => {
 			"docs/assets/omcs-config-precedence.svg",
 			"docs/assets/omcs-benchmark-calibration.svg",
 			"docs/assets/omcs-benchmark-results.svg",
-			"docs/assets/omcs-configure-project.png",
-			"docs/assets/omcs-route-declaration.png",
-			"docs/assets/omcs-verification-receipt.png",
+			"docs/assets/omcs-configure-project.svg",
+			"docs/assets/omcs-route-declaration.svg",
+			"docs/assets/omcs-verification-receipt.svg",
 		])
 			assert.equal(paths.has(required), true, required);
 	});

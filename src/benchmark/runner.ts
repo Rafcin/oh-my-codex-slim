@@ -6,6 +6,7 @@ export interface CodexInvocationInput {
 	sandbox: "read-only" | "workspace-write";
 	workingDirectory: string;
 	toolDirectory: string;
+	readableRoots?: readonly string[];
 	prompt: string;
 }
 
@@ -47,6 +48,14 @@ export function buildCodexInvocation(
 		input.kind === "omcs"
 			? `Use OMCS with the ${input.profile ?? "auto"} profile.\n\n${input.prompt}`
 			: input.prompt;
+	const filesystemEntries = [
+		'":minimal"="read"',
+		`":project_roots"="${projectAccess}"`,
+		`${JSON.stringify(input.toolDirectory)}="read"`,
+		...[...new Set(input.readableRoots ?? [])].map(
+			(root) => `${JSON.stringify(root)}="read"`,
+		),
+	];
 	return {
 		command: "codex",
 		args: [
@@ -55,7 +64,7 @@ export function buildCodexInvocation(
 			"-c",
 			'default_permissions="omcs-benchmark"',
 			"-c",
-			`permissions.omcs-benchmark.filesystem={":minimal"="read",":project_roots"="${projectAccess}",${JSON.stringify(input.toolDirectory)}="read"}`,
+			`permissions.omcs-benchmark.filesystem={${filesystemEntries.join(",")}}`,
 			"-c",
 			"permissions.omcs-benchmark.network.enabled=false",
 			"-c",

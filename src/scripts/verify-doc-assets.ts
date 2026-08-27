@@ -20,57 +20,72 @@ const guidePaths = [
 
 const diagramNames = ["omcs-config-precedence", "omcs-pipeline", "omcs-routing"] as const;
 const chartNames = ["omcs-benchmark-calibration", "omcs-benchmark-results"] as const;
-const screenshotNames = ["omcs-configure-project.png", "omcs-route-declaration.png", "omcs-verification-receipt.png"] as const;
+const terminalNames = ["omcs-configure-project.svg", "omcs-route-declaration.svg", "omcs-verification-receipt.svg"] as const;
 const maxAssetBytes = 1_000_000;
 const minDimension = 320;
 const maxDimension = 2_400;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const monochromePalette = new Set(["#111111", "#525252", "#A3A3A3", "#E5E5E5", "#F5F5F5", "#FFFFFF", "NONE"]);
+const terminalPalette = new Set([
+	"#00CA4E", "#171717", "#202020", "#303030", "#525252", "#7DD3C7", "#A3A3A3", "#A7F3D0", "#B7A7FF",
+	"#D4D4D4", "#E5E5E5", "#F5F5F5", "#F7F7F5", "#FDE68A", "#FF605C", "#FFBD44", "NONE",
+]);
+const terminalElements = new Set(["svg", "title", "desc", "rect", "path", "line", "circle", "text", "g"]);
+const terminalAttributes: Readonly<Record<string, ReadonlySet<string>>> = {
+	svg: new Set(["xmlns", "viewBox", "role", "aria-labelledby"]),
+	title: new Set(["id"]),
+	desc: new Set(["id"]),
+	rect: new Set(["x", "y", "width", "height", "rx", "fill", "stroke", "stroke-width"]),
+	path: new Set(["d", "fill"]),
+	line: new Set(["x1", "y1", "x2", "y2", "stroke", "stroke-width"]),
+	circle: new Set(["cx", "cy", "r", "fill"]),
+	text: new Set(["x", "y", "text-anchor", "font-family", "font-size", "font-weight", "fill", "dominant-baseline"]),
+	g: new Set(["font-family", "font-size", "dominant-baseline"]),
+};
 
 export interface PublicDocsReport {
 	guides: number;
 	diagrams: string[];
 	charts: string[];
-	screenshots: string[];
+	terminals: string[];
 }
 
 export interface VerifyPublicDocsOptions {
 	repositoryRoot?: string;
-	pngReviewManifest?: PngReviewManifest;
+	terminalReviewManifest?: TerminalReviewManifest;
 }
 
-export interface PngReviewFixture {
+export interface TerminalReviewFixture {
 	sha256: string;
 	visibleText: readonly string[];
 }
 
-export type PngReviewManifest = Readonly<Record<(typeof screenshotNames)[number], PngReviewFixture>>;
+export type TerminalReviewManifest = Readonly<Record<(typeof terminalNames)[number], TerminalReviewFixture>>;
 
-/** Exact reviewed fixture bytes bind this text-only manifest to the rendered screenshots. */
-export const REVIEWED_PNG_FIXTURES: PngReviewManifest = {
-	"omcs-configure-project.png": {
-		sha256: "c87d603361e1e4b00a058352bbf1b1ca2c3f193d3e4ba9237b20a4c75d182696",
+/** Exact reviewed fixture bytes bind this transcription to the published terminal SVGs. */
+export const REVIEWED_TERMINAL_FIXTURES: TerminalReviewManifest = {
+	"omcs-configure-project.svg": {
+		sha256: "67f77e2d08f404b695f5e0092152c0c8d684ea19db69608bedc1d8ac26fd8c5f",
 		visibleText: [
-			"acme-widget — deterministic CLI fixture", "example@acme-widget", ":/Users/example/acme-widget $",
+			"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$",
 			"omcs configure --scope project --profile auto --dry-run --json", "{", '"scope": "project",', '"action": "would-create",',
-			'"path": "/Users/example/acme-widget/omcs.config.json",', '"bytes": 398,', '"effectiveProfile": "auto"', "}",
+			'"path": "/Users/example/acme-widget/omcs.config.json",', '"bytes": 398,', '"effectiveProfile": "auto"', "}", "dry run only · no project file was written",
 		],
 	},
-	"omcs-route-declaration.png": {
-		sha256: "6dd535368485a38d3d9c4c702efd492f64c16742b564a14662b48b9aa5660e27",
+	"omcs-route-declaration.svg": {
+		sha256: "02c9849833ccb28e67fc43e99f985c39ec44f3b87446697ecc7e47224e32e79d",
 		visibleText: [
-			"acme-widget — Codex CLI", "example@acme-widget", ":/Users/example/acme-widget $", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
-			"risk: public interface with persistent configuration", "skills: context, codebase-design, plan, tdd, verification, code-review",
-			"agents: architect → explorer + librarian → terra-fixer → reviewer", "approval: material-decisions", "● Understanding complete", "● Design ready for approval", "● Implementation pending",
+			"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
+			"risk: wide blast radius; review required", "skills: context · codebase-design · plan · tdd · ai-slop-cleaner · verification · code-review",
+			"agents: architect → explorer + librarian → terra-fixer → reviewer", "council: disabled", "approval: material-decisions", "understanding complete", "design ready for approval", "implementation pending",
 		],
 	},
-	"omcs-verification-receipt.png": {
-		sha256: "c002ca9e4744144f8ad6a9329e249c78331a70bc8c9be5b6b59985089d7c5828",
+	"omcs-verification-receipt.svg": {
+		sha256: "8b9fc5fb1acc7ed8f30074c7baa0311c685815266ce08fc97eba2931d55bef14",
 		visibleText: [
-			"acme-widget — synthetic receipt fixture", "example@acme-widget", ":/Users/example/acme-widget $",
-			"cat .omcs/runs/2026-08-26T12-00-00-000Z-12345678-1234-4abc-8def-1234567890ab.json", "{", '"schemaVersion": 1,', '"profile": "auto",', '"route": "full",',
+			"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "cat ./.omcs/runs/<receipt>.json", "{", '"schemaVersion": 1,', '"profile": "auto",', '"route": "full",',
 			'"skills": ["tdd", "verification"],', '"agents": ["omcs_architect", "omcs_reviewer"],', '"approval": "material-decisions",',
-			'"verification": [{"command": "npm test", "outcome": "passed"}],', '"review": {"verdict": "ship"}', "}",
+			'"verification": [{"command": "npm test", "outcome": "passed"}],', '"review": {"verdict": "ship"}', "}", "verification: npm test passed · review: ship",
 		],
 	},
 };
@@ -200,13 +215,6 @@ export function parseSvgDiagram(source: string, path: string): { title: string; 
 	return { title, width: viewBox[2], height: viewBox[3] };
 }
 
-function pngDimensions(bytes: Buffer, path: string): { width: number; height: number } {
-	const signature = [137, 80, 78, 71, 13, 10, 26, 10];
-	if (bytes.length < 24 || !signature.every((value, index) => bytes[index] === value)) fail(`not a PNG: ${path}`);
-	if (bytes.subarray(12, 16).toString("ascii") !== "IHDR") fail(`PNG lacks IHDR: ${path}`);
-	return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
-}
-
 function assertDimensions(path: string, width: number, height: number): void {
 	if (width < minDimension || height < minDimension || width > maxDimension || height > maxDimension) {
 		fail(`asset dimensions are outside the public bounds: ${path}`);
@@ -222,6 +230,50 @@ export function assertMonochromeSvg(source: string, path: string): void {
 	for (const match of colorAttributes) {
 		const value = match[2]?.trim().toUpperCase() ?? "";
 		if (!monochromePalette.has(value)) fail(`SVG is not monochrome: unreviewed color in ${path}`);
+	}
+}
+
+/** Keeps terminal fixtures in one reviewed Ghostty-style palette with no executable or decorative escape hatches. */
+export function assertTerminalSvg(source: string, path: string): void {
+	if (
+		/<(?:linearGradient|radialGradient|filter|style|script|foreignObject|image|use|a|iframe|object|embed)\b/i.test(source)
+		|| /<\?xml-stylesheet\b|<!DOCTYPE\b|<!\[CDATA\[|<!--/i.test(source)
+		|| /\s(?:on[a-z0-9:_-]+|style|(?:xlink:)?href)\s*=/i.test(source)
+	) {
+		fail(`SVG is outside the terminal palette: decorative or executable content in ${path}`);
+	}
+	let index = 0;
+	while (index < source.length) {
+		const start = source.indexOf("<", index);
+		if (start < 0) break;
+		if (source.startsWith("<?", start)) {
+			const end = source.indexOf("?>", start + 2);
+			if (end < 0) fail(`SVG is outside the terminal palette: invalid processing instruction in ${path}`);
+			if (start !== 0 || source.slice(start, end + 2) !== '<?xml version="1.0" encoding="UTF-8"?>') {
+				fail(`SVG is outside the terminal palette: unreviewed processing instruction in ${path}`);
+			}
+			index = end + 2;
+			continue;
+		}
+		if (source.startsWith("</", start)) {
+			const end = source.indexOf(">", start + 2);
+			if (end < 0) fail(`SVG is outside the terminal palette: invalid closing element in ${path}`);
+			index = end + 1;
+			continue;
+		}
+		const end = readTagEnd(source, start + 1);
+		const parsed = parseAttributes(source.slice(start + 1, end), path);
+		if (!terminalElements.has(parsed.name)) fail(`SVG is outside the terminal palette: unreviewed element in ${path}`);
+		const allowedAttributes = terminalAttributes[parsed.name];
+		if (!allowedAttributes || Object.keys(parsed.attributes).some((attribute) => !allowedAttributes.has(attribute))) {
+			fail(`SVG is outside the terminal palette: unreviewed attribute in ${path}`);
+		}
+		index = end + 1;
+	}
+	const colorAttributes = source.matchAll(/\b(?:fill|stroke|color|stop-color|flood-color|lighting-color)\s*=\s*(["'])(.*?)\1/gi);
+	for (const match of colorAttributes) {
+		const value = match[2]?.trim().toUpperCase() ?? "";
+		if (!terminalPalette.has(value)) fail(`SVG is outside the terminal palette: unreviewed color in ${path}`);
 	}
 }
 
@@ -259,12 +311,12 @@ async function assertNoUnsafeContent(root: string): Promise<void> {
 	}
 }
 
-function assertSafeReviewedText(name: string, fixture: PngReviewFixture): void {
-	if (!/^[a-f0-9]{64}$/.test(fixture.sha256) || fixture.visibleText.length === 0) fail(`invalid PNG review manifest: ${name}`);
-	if (unsafeContentPatterns.some((pattern) => fixture.visibleText.some((value) => pattern.test(value)))) fail(`unsafe reviewed PNG text: ${name}`);
+function assertSafeReviewedText(name: string, fixture: TerminalReviewFixture): void {
+	if (!/^[a-f0-9]{64}$/.test(fixture.sha256) || fixture.visibleText.length === 0) fail(`invalid terminal review manifest: ${name}`);
+	if (unsafeContentPatterns.some((pattern) => fixture.visibleText.some((value) => pattern.test(value)))) fail(`unsafe reviewed terminal text: ${name}`);
 }
 
-async function assertReviewedPng(root: string, name: (typeof screenshotNames)[number], fixture: PngReviewFixture): Promise<void> {
+async function assertReviewedTerminal(root: string, name: (typeof terminalNames)[number], fixture: TerminalReviewFixture): Promise<void> {
 	assertSafeReviewedText(name, fixture);
 	const bytes = await readFile(join(root, "docs", "assets", name));
 	if (createHash("sha256").update(bytes).digest("hex") !== fixture.sha256) fail(`reviewed digest does not match: ${name}`);
@@ -298,14 +350,14 @@ async function assertReadmeLinks(root: string): Promise<void> {
 		const target = guide.replace(/^docs\//, "docs/");
 		if (!readme.includes(`](${target})`)) fail(`README does not link required guide: ${target}`);
 	}
-	for (const asset of ["omcs-pipeline.svg", ...chartNames.map((name) => `${name}.svg`), ...screenshotNames]) {
+	for (const asset of ["omcs-pipeline.svg", ...chartNames.map((name) => `${name}.svg`), ...terminalNames]) {
 		if (!readme.includes(`docs/assets/${asset}`)) fail(`README does not embed required asset: ${asset}`);
 	}
 }
 
 export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): Promise<PublicDocsReport> {
 	const root = resolve(options.repositoryRoot ?? repositoryRoot);
-	const pngReviewManifest = options.pngReviewManifest ?? REVIEWED_PNG_FIXTURES;
+	const terminalReviewManifest = options.terminalReviewManifest ?? REVIEWED_TERMINAL_FIXTURES;
 	await assertNoUnsafeContent(root);
 	for (const guide of guidePaths) await stat(join(root, guide));
 	await assertReadmeLinks(root);
@@ -331,19 +383,21 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		assertDimensions(path, width, height);
 	}
 
-	for (const screenshot of screenshotNames) {
-		const path = join(root, "docs", "assets", screenshot);
+	for (const terminal of terminalNames) {
+		const path = join(root, "docs", "assets", terminal);
 		const bytes = await readFile(path);
 		assertAssetSize(path, bytes);
-		const { width, height } = pngDimensions(bytes, path);
+		const source = bytes.toString("utf8");
+		assertTerminalSvg(source, path);
+		const { width, height } = parseSvgDiagram(source, path);
 		assertDimensions(path, width, height);
-		await assertReviewedPng(root, screenshot, pngReviewManifest[screenshot]);
+		await assertReviewedTerminal(root, terminal, terminalReviewManifest[terminal]);
 	}
 
-	return { guides: guidePaths.length, diagrams: [...diagramNames], charts: [...chartNames], screenshots: [...screenshotNames] };
+	return { guides: guidePaths.length, diagrams: [...diagramNames], charts: [...chartNames], terminals: [...terminalNames] };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	const report = await verifyPublicDocs();
-	process.stdout.write(`verified ${report.guides} guides, ${report.diagrams.length} diagrams, ${report.charts.length} charts, and ${report.screenshots.length} screenshots\n`);
+	process.stdout.write(`verified ${report.guides} guides, ${report.diagrams.length} diagrams, ${report.charts.length} charts, and ${report.terminals.length} terminal views\n`);
 }

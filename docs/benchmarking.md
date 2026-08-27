@@ -34,7 +34,7 @@ The public pilot is a canary for harness and prompt refinement. Its fixtures, gr
 The README intentionally separates two displays:
 
 - **grader calibration:** 0 of 6 untouched fixtures pass; 6 of 6 checked-in reference oracles pass;
-- **comparative performance:** pending until the quota-consuming 36-run plain-Codex-versus-OMCS matrix is explicitly approved and completed.
+- **comparative performance:** no valid result is published. An August 27, 2026 matrix was invalidated because the treatment could not read its installed skill files; the corrected quota-consuming 36-run rerun requires separate explicit approval.
 
 The checked-in reference oracle is acceptance-test evidence, not output from the paired benchmark. Published generated-code examples must come from the paired run and include representative failures or regressions alongside successes.
 
@@ -46,13 +46,13 @@ node dist/cli/omcs.js benchmark plan bench/prompt-refinement-pilot.json --json
 node dist/cli/omcs.js benchmark run bench/prompt-refinement-pilot.json --dry-run --json
 ```
 
-After the user explicitly approves this specific 36-run model matrix, the execution command is:
+After the user explicitly approves the corrected 36-run model matrix, the execution command is:
 
 ```bash
 node dist/cli/omcs.js benchmark run bench/prompt-refinement-pilot.json --execute --approve-model-usage --json
 ```
 
-The command creates both minimal Codex homes and reads back the baseline's empty integration state and the treatment's exact plugin, MCP, and eight-agent catalog state before the first model request. It temporarily links the existing private Codex authentication file into each owner-only directory so the Codex parent can authenticate. A custom filesystem permission profile exposes only minimal platform paths and the benchmark workspace to model-generated commands; neither Codex home is readable. Before execution, a no-model synthetic access probe must prove the workspace is readable and each linked authentication path is not. The harness removes both temporary homes at the end, never prints or copies credential values, inherits only a small environment allowlist, and never starts a login flow.
+The command creates both minimal Codex homes and reads back the baseline's empty integration state and the treatment's exact plugin, MCP, and eight-agent catalog state before the first model request. It temporarily links the existing private Codex authentication file into each owner-only directory so the Codex parent can authenticate. A custom filesystem permission profile exposes minimal platform paths and the benchmark workspace to model-generated commands; the treatment additionally receives read-only access to the exact installed OMCS plugin root so its skill instructions are usable. The remainder of each Codex home stays unreadable. Before execution, a no-model synthetic access probe must prove the workspace and treatment skill file are readable while each linked authentication path is not. The harness removes both temporary homes at the end, never prints or copies credential values, inherits only a small environment allowlist, and never starts a login flow.
 
 Summarize a saved private result:
 

@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
+import { summarizeExecutedBenchmark } from "../benchmark.js";
+import { parseBenchmarkResults } from "../../benchmark/report.js";
 
 const cli = join(process.cwd(), "dist", "cli", "omcs.js");
 
@@ -162,6 +164,21 @@ describe("benchmark CLI", () => {
 			);
 			assert.equal(result.status, 0, result.stderr);
 			assert.equal(JSON.parse(result.stdout).paired.verifiedRateDelta, 1);
+		} finally {
+			await rm(item.root, { recursive: true, force: true });
+		}
+	});
+
+	it("summarizes a completed execution without feeding its private result path into strict result parsing", async () => {
+		const item = await fixture();
+		try {
+			const completed = summarizeExecutedBenchmark({
+				...parseBenchmarkResults(JSON.parse(await readFile(item.resultsPath, "utf8")) as unknown),
+				resultPath: item.resultsPath,
+			});
+			assert.equal(completed.modelExecution, true);
+			assert.equal(completed.resultPath, item.resultsPath);
+			assert.equal(completed.report.paired.verifiedRateDelta, 1);
 		} finally {
 			await rm(item.root, { recursive: true, force: true });
 		}

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Example project configuration preview in a macOS terminal</title>
+  <desc id="desc">A synthetic Ghostty-style terminal previews a dry-run project configuration in a sample acme-widget project without showing personal paths or credentials.</desc>
+  <rect width="1440" height="900" fill="#F7F7F5"/>
+  <rect x="56" y="48" width="1328" height="804" rx="24" fill="#171717" stroke="#303030" stroke-width="2"/>
+  <path d="M80 48h1280a24 24 0 0 1 24 24v58H56V72a24 24 0 0 1 24-24Z" fill="#202020"/>
+  <line x1="56" y1="130" x2="1384" y2="130" stroke="#303030" stroke-width="2"/>
+  <circle cx="98" cy="89" r="12" fill="#FF605C"/><circle cx="130" cy="89" r="12" fill="#FFBD44"/><circle cx="162" cy="89" r="12" fill="#00CA4E"/>
+  <text x="720" y="96" text-anchor="middle" font-family="ui-sans-serif, -apple-system, BlinkMacSystemFont, &quot;SF Pro Display&quot;, sans-serif" font-size="17" font-weight="500" fill="#A3A3A3">acme-widget — Codex CLI</text>
+  <g font-family="&quot;SF Mono&quot;, &quot;SFMono-Regular&quot;, Menlo, Monaco, Consolas, monospace" font-size="23" dominant-baseline="middle">
+    <text x="108" y="188" fill="#7DD3C7">example@acme-widget</text><text x="390" y="188" fill="#A3A3A3">~/work/acme-widget</text><text x="690" y="188" fill="#E5E5E5">$</text>
+    <text x="108" y="244" fill="#F5F5F5">omcs configure --scope project --profile auto --dry-run --json</text>
+    <g font-size="22">
+      <text x="108" y="314" fill="#B7A7FF">{</text>
+      <text x="148" y="362" fill="#A3A3A3">&quot;scope&quot;</text><text x="342" y="362" fill="#525252">:</text><text x="388" y="362" fill="#E5E5E5">&quot;project&quot;,</text>
+      <text x="148" y="414" fill="#A3A3A3">&quot;action&quot;</text><text x="342" y="414" fill="#525252">:</text><text x="388" y="414" fill="#E5E5E5">&quot;would-create&quot;,</text>
+      <text x="148" y="466" fill="#A3A3A3">&quot;path&quot;</text><text x="342" y="466" fill="#525252">:</text><text x="388" y="466" fill="#E5E5E5">&quot;/Users/example/acme-widget/omcs.config.json&quot;,</text>
+      <text x="148" y="518" fill="#A3A3A3">&quot;bytes&quot;</text><text x="342" y="518" fill="#525252">:</text><text x="388" y="518" fill="#E5E5E5">398,</text>
+      <text x="148" y="570" fill="#A3A3A3">&quot;effectiveProfile&quot;</text><text x="410" y="570" fill="#525252">:</text><text x="456" y="570" fill="#E5E5E5">&quot;auto&quot;</text>
+      <text x="108" y="622" fill="#B7A7FF">}</text>
+    </g>
+    <line x1="108" y1="688" x2="1332" y2="688" stroke="#303030" stroke-width="2"/>
+    <text x="108" y="746" font-size="20" fill="#A7F3D0">✓</text><text x="144" y="746" font-size="20" fill="#E5E5E5">dry run only · no project file was written</text>
+  </g>
+</svg>

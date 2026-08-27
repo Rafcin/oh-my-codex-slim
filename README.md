@@ -16,7 +16,7 @@ OMCS is intentionally slim: eight native Codex roles, sixteen focused skills, ow
 
 Before work, OMCS makes the decision visible. The declaration is not a promise of a particular model result; it is the workflow contract the architect must follow.
 
-![Synthetic terminal example of an OMCS route declaration](docs/assets/omcs-route-declaration.png)
+![Synthetic Ghostty-style terminal example of an OMCS route declaration](docs/assets/omcs-route-declaration.svg)
 
 ```text
 OMCS ROUTE
@@ -40,7 +40,7 @@ When no policy exists, OMCS offers three choices—just like a good advisor shou
 2. **Configure globally:** private preferences below `${CODEX_HOME}/oh-my-codex-slim/`.
 3. **Use for this session:** safe defaults with no file write.
 
-![Synthetic terminal example of project configuration](docs/assets/omcs-configure-project.png)
+![Synthetic Ghostty-style terminal example of project configuration](docs/assets/omcs-configure-project.svg)
 
 ```bash
 omcs configure --scope project --profile auto --dry-run --json
@@ -127,9 +127,9 @@ This is calibration evidence, not a performance claim. The six broken starting f
 
 ### Comparative performance
 
-![Plain Codex versus OMCS benchmark results are pending the approved 36-run comparison](docs/assets/omcs-benchmark-results.svg)
+![No valid Plain Codex versus OMCS result is published; the corrected 36-run rerun awaits separate approval](docs/assets/omcs-benchmark-results.svg)
 
-The public comparison has not been executed, so OMCS does not publish invented success, speed, or token numbers. When a verified run exists, this panel will report success, paired improvements and regressions, median wall time, token coverage, and safety violations separately—never as one vanity score.
+No valid public comparison has completed, so OMCS does not publish invented success, speed, or token numbers. An initial 36-run matrix was executed on August 27, 2026, then invalidated during transcript audit because the treatment sandbox could not read the installed OMCS skill files. Those numbers are not performance evidence. The harness now proves the exact treatment skill root is readable while authentication remains denied; a corrected quota-consuming rerun still requires separate explicit approval. When a verified run exists, this panel will report success, paired improvements and regressions, median wall time, token coverage, and safety violations separately—never as one vanity score.
 
 ### What the benchmark is designed to reveal
 
@@ -170,7 +170,7 @@ Local runtime state under `.omcs/`, `.gjc/`, and `.superpowers/sdd/` is ignored 
 
 The public MCP surface exposes six code-intelligence tools. Its host binds operations to the launch-time project root, rejects oversized files and trees, and does not expose the legacy dependency-clone helper.
 
-![Synthetic terminal example of a minimal private verification receipt](docs/assets/omcs-verification-receipt.png)
+![Synthetic Ghostty-style terminal example of a minimal private verification receipt](docs/assets/omcs-verification-receipt.svg)
 
 Receipts are optional, local, ignored evidence summaries—not an execution engine. They record only policy and command outcomes, never prompts, source code, raw command output, environment variables, credentials, provider metadata, absolute user paths, or model responses.
 

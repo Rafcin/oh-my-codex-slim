@@ -152,6 +152,28 @@ async function resolveExecutablePath(executable: string): Promise<string> {
 	throw new Error(`benchmark executable is unavailable: ${executable}`);
 }
 
+export async function resolveExecutableLauncher(
+	executable: string,
+	argsPrefix: readonly string[] = [],
+): Promise<{ command: string; argsPrefix: string[] }> {
+	const canonical = await resolveExecutablePath(executable);
+	const handle = await open(canonical, "r");
+	try {
+		const status = await handle.stat();
+		if (!status.isFile())
+			throw new Error("benchmark executable must be a regular file");
+		const header = Buffer.alloc(256);
+		const { bytesRead } = await handle.read(header, 0, header.length, 0);
+		const shebang = header.subarray(0, bytesRead).toString("utf8").split("\n", 1)[0] ?? "";
+		if (/^#!\s*\/usr\/bin\/env\s+(?:-S\s+)?node(?:\s|$)/.test(shebang)) {
+			return { command: process.execPath, argsPrefix: [canonical, ...argsPrefix] };
+		}
+		return { command: canonical, argsPrefix: [...argsPrefix] };
+	} finally {
+		await handle.close();
+	}
+}
+
 async function prepareBenchmarkToolDirectory(
 	prepared?: string,
 ): Promise<{ path: string; cleanup: () => Promise<void> }> {
@@ -569,8 +591,10 @@ async function prepareIsolatedCodexHome(
 	options: ExecuteBenchmarkOptions,
 	includeOmcs: boolean,
 	codexExecutable: string,
+	codexArgsPrefix: readonly string[],
 	toolDirectory: string,
-): Promise<{ path: string; cleanup: () => Promise<void> }> {
+	omcsPackageVersion: string,
+): Promise<{ path: string; pluginRoot?: string; cleanup: () => Promise<void> }> {
 	if (options.preparedCodexHome) {
 		return {
 			path: await realpath(options.preparedCodexHome),
@@ -596,6 +620,16 @@ async function prepareIsolatedCodexHome(
 		join(await realpath(tmpdir()), "omcs-benchmark-codex-home-"),
 	);
 	try {
+		const expectedPluginRoot = includeOmcs
+			? join(
+					isolatedHome,
+					"plugins",
+					"cache",
+					"omcs-local",
+					"oh-my-codex-slim",
+					omcsPackageVersion,
+				)
+			: undefined;
 		await symlink(authPath, join(isolatedHome, "auth.json"));
 		const projectAccess =
 			options.suite.sandbox === "workspace-write" ? "write" : "read";
@@ -608,6 +642,9 @@ async function prepareIsolatedCodexHome(
 				'":minimal" = "read"',
 				`":project_roots" = "${projectAccess}"`,
 				`${JSON.stringify(toolDirectory)} = "read"`,
+				...(expectedPluginRoot
+					? [`${JSON.stringify(expectedPluginRoot)} = "read"`]
+					: []),
 				"",
 				"[permissions.omcs-benchmark.network]",
 				"enabled = false",
@@ -631,7 +668,7 @@ async function prepareIsolatedCodexHome(
 				["plugin", "add", "oh-my-codex-slim@omcs-local", "--json"],
 			);
 		for (const args of preflightCommands) {
-			const result = await runProcess(codexExecutable, args, {
+			const result = await runProcess(codexExecutable, [...codexArgsPrefix, ...args], {
 				cwd: packageRoot,
 				timeoutMs: 30_000,
 				environment,
@@ -656,9 +693,14 @@ async function prepareIsolatedCodexHome(
 					throw new Error("benchmark isolated Codex home has agent catalog drift");
 			}
 		}
+		const pluginRoot = expectedPluginRoot
+			? await realpath(expectedPluginRoot)
+			: undefined;
+		if (pluginRoot && !contained(isolatedHome, pluginRoot))
+			throw new Error("benchmark plugin cache escaped the isolated Codex home");
 		const plugins = await runProcess(
 			codexExecutable,
-			["plugin", "list", "--json"],
+			[...codexArgsPrefix, "plugin", "list", "--json"],
 			{
 				cwd: packageRoot,
 				timeoutMs: 30_000,
@@ -667,7 +709,7 @@ async function prepareIsolatedCodexHome(
 		);
 		const mcpServers = await runProcess(
 			codexExecutable,
-			["mcp", "list", "--json"],
+			[...codexArgsPrefix, "mcp", "list", "--json"],
 			{
 				cwd: packageRoot,
 				timeoutMs: 30_000,
@@ -698,13 +740,20 @@ async function prepareIsolatedCodexHome(
 				"benchmark isolated Codex home contains unexpected integrations",
 			);
 		}
+		const isolationFilesystem = [
+			'":minimal"="read"',
+			`":project_roots"="${projectAccess}"`,
+			`${JSON.stringify(toolDirectory)}="read"`,
+			...(pluginRoot ? [`${JSON.stringify(pluginRoot)}="read"`] : []),
+		].join(",");
 		const isolationProbe = await runProcess(
 			codexExecutable,
 			[
+				...codexArgsPrefix,
 				"-c",
 				'default_permissions="omcs-benchmark"',
 				"-c",
-				`permissions.omcs-benchmark.filesystem={":minimal"="read",":project_roots"="${projectAccess}",${JSON.stringify(toolDirectory)}="read"}`,
+				`permissions.omcs-benchmark.filesystem={${isolationFilesystem}}`,
 				"-c",
 				"permissions.omcs-benchmark.network.enabled=false",
 				"sandbox",
@@ -716,9 +765,10 @@ async function prepareIsolatedCodexHome(
 				"--",
 				"/bin/sh",
 				"-c",
-				'test -r package.json && ! test -r "$1"',
+				'test -r package.json && ! test -r "$1" && { test -z "$2" || test -r "$2/skills/omcs/SKILL.md"; }',
 				"omcs-probe",
 				join(isolatedHome, "auth.json"),
+				pluginRoot ?? "",
 			],
 			{
 				cwd: packageRoot,
@@ -732,6 +782,7 @@ async function prepareIsolatedCodexHome(
 			);
 		return {
 			path: isolatedHome,
+			pluginRoot,
 			cleanup: async () => rm(isolatedHome, { recursive: true, force: true }),
 		};
 	} catch (error) {
@@ -927,9 +978,12 @@ export async function executeBenchmark(
 	if (!options.containerExecutable) await verifyGraderContainerIsolation();
 	const packageRoot =
 		options.packageRoot ?? fileURLToPath(new URL("../../", import.meta.url));
-	const codexExecutable = await resolveExecutablePath(
+	const codexLauncher = await resolveExecutableLauncher(
 		options.codexExecutable ?? "codex",
+		options.codexArgsPrefix,
 	);
+	const codexExecutable = codexLauncher.command;
+	const codexArgsPrefix = codexLauncher.argsPrefix;
 	const packageDocument = JSON.parse(
 		await readFile(join(packageRoot, "package.json"), "utf8"),
 	) as { version?: unknown };
@@ -938,7 +992,7 @@ export async function executeBenchmark(
 		throw new Error("OMCS package version is unavailable");
 	let codexCliVersion = options.codexCliVersion;
 	if (!codexCliVersion) {
-		const version = await runProcess(codexExecutable, ["--version"], {
+		const version = await runProcess(codexExecutable, [...codexArgsPrefix, "--version"], {
 			cwd: packageRoot,
 			timeoutMs: 30_000,
 			environment: benchmarkModelEnvironment(undefined),
@@ -1067,7 +1121,9 @@ export async function executeBenchmark(
 			options,
 			false,
 			codexExecutable,
+			codexArgsPrefix,
 			toolDirectory.path,
+			omcsPackageVersion,
 		);
 	} catch (error) {
 		await toolDirectory.cleanup();
@@ -1079,7 +1135,9 @@ export async function executeBenchmark(
 			options,
 			true,
 			codexExecutable,
+			codexArgsPrefix,
 			toolDirectory.path,
+			omcsPackageVersion,
 		);
 	} catch (error) {
 		await Promise.all([
@@ -1135,6 +1193,10 @@ export async function executeBenchmark(
 					sandbox: options.suite.sandbox,
 					workingDirectory: workspace,
 					toolDirectory: toolDirectory.path,
+					readableRoots:
+						condition.kind === "omcs" && treatmentCodexHome.pluginRoot
+							? [treatmentCodexHome.pluginRoot]
+							: [],
 					prompt: task.prompt,
 				});
 				const startedAt = Date.now();
@@ -1142,7 +1204,7 @@ export async function executeBenchmark(
 				try {
 					codex = await runProcess(
 						codexExecutable,
-						[...(options.codexArgsPrefix ?? []), ...invocation.args],
+						[...codexArgsPrefix, ...invocation.args],
 						{
 							cwd: workspace,
 							stdin: invocation.stdin,

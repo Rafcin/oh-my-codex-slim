@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
-import { executeBenchmark } from "../benchmark/execution.js";
+import { executeBenchmark, type ExecuteBenchmarkResult } from "../benchmark/execution.js";
 import { parseBenchmarkSuite } from "../benchmark/manifest.js";
 import { planBenchmark } from "../benchmark/plan.js";
 import { snapshotBenchmarkSuite } from "../benchmark/snapshot.js";
@@ -99,10 +99,19 @@ export async function executeBenchmarkFile(path: string, resumeDirectory?: strin
 		approval: { execute: true, approveModelUsage: true },
 		resumeDirectory,
 	});
+	return summarizeExecutedBenchmark(result);
+}
+
+export function summarizeExecutedBenchmark(result: ExecuteBenchmarkResult): {
+	modelExecution: true;
+	resultPath: string;
+	report: ReturnType<typeof summarizeBenchmark>;
+} {
+	const { resultPath, ...persisted } = result;
 	return {
 		modelExecution: true,
-		resultPath: result.resultPath,
-		report: summarizeBenchmark(result),
+		resultPath,
+		report: summarizeBenchmark(persisted),
 	};
 }
 

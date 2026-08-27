@@ -66,6 +66,7 @@ describe("benchmark runner safety and parity", () => {
 			sandbox: "workspace-write",
 			workingDirectory: "/private/fixture",
 			toolDirectory: "/private/tools",
+			readableRoots: ["/private/omcs-plugin"],
 			prompt: "Repair the issue.",
 		});
 
@@ -73,6 +74,11 @@ describe("benchmark runner safety and parity", () => {
 		assert.ok(invocation.args.includes('model_reasoning_effort="high"'));
 		assert.ok(
 			invocation.args.some((argument) => argument.includes('":project_roots"="write"')),
+		);
+		assert.ok(
+			invocation.args.includes(
+				'permissions.omcs-benchmark.filesystem={":minimal"="read",":project_roots"="write","/private/tools"="read","/private/omcs-plugin"="read"}',
+			),
 		);
 		assert.match(invocation.stdin, /^Use OMCS with the auto profile\./);
 		assert.match(invocation.stdin, /Repair the issue\.$/);
