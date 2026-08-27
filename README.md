@@ -117,7 +117,45 @@ The repository retains attributed legacy Codex Router compatibility code only so
 
 ## Benchmark OMCS against plain Codex
 
-OMCS ships a paired, hidden-grader benchmark harness and a six-task calibration pilot. It freezes and hashes the model controls, prompts, fixtures, graders, Codex version, and OMCS plugin surface; runs plain Codex without user rules, plugins, or hooks; runs OMCS with the exact plugin, MCP, and eight-agent catalog; and grades both in a pinned, networkless, read-only container. Reports show verified success, paired regressions, time, tokens when available, and safety violations without collapsing them into a vanity score.
+OMCS ships a paired, hidden-grader benchmark harness and a six-task calibration pilot. It freezes and hashes the model controls, prompts, fixtures, graders, Codex version, and OMCS plugin surface; runs plain Codex without user rules, plugins, or hooks; runs OMCS with the exact plugin, MCP, and eight-agent catalog; and grades both in a pinned, networkless, read-only container.
+
+### What is verified today
+
+![Benchmark calibration: zero of six untouched fixtures pass and six of six reference oracles pass](docs/assets/omcs-benchmark-calibration.svg)
+
+This is calibration evidence, not a performance claim. The six broken starting fixtures fail their hidden graders, the six checked-in reference oracles pass, and the offline grader gate reports no safety violations. That proves the pilot can discriminate broken from known-good work; it does not say which model arm performs better.
+
+### Comparative performance
+
+![Plain Codex versus OMCS benchmark results are pending the approved 36-run comparison](docs/assets/omcs-benchmark-results.svg)
+
+The public comparison has not been executed, so OMCS does not publish invented success, speed, or token numbers. When a verified run exists, this panel will report success, paired improvements and regressions, median wall time, token coverage, and safety violations separately—never as one vanity score.
+
+### What the benchmark is designed to reveal
+
+| Work shape | Hypothesis before measurement | What would falsify it |
+| --- | --- | --- |
+| Multi-file fixes, security work, and material interfaces | OMCS should benefit from explicit planning, bounded implementation, and fresh review. | No verified-success gain, or more paired regressions than improvements. |
+| Diagnosis and documentation with several evidence sources | Explorer and reviewer roles should reduce omissions and unsupported claims. | Similar defect escape with materially higher time or token use. |
+| Tiny, obvious edits | OMCS may struggle to justify orchestration overhead; `fast` or `solo` should be more proportionate. | `auto` adds latency or tokens without improving verified success. |
+| Ambiguous or poorly specified tasks | Fail-closed clarification should improve safety but may reduce completion speed. | More abandoned work without fewer unsafe or incorrect outcomes. |
+
+These are testable hypotheses, not claims that OMCS already shines in those categories.
+
+### Code quality target
+
+The public pilot includes reviewable reference solutions so the graders themselves can be audited. For example, the query-parser task requires repeated-key ordering, `+` decoding, missing values, and prototype-pollution defenses:
+
+```js
+const blockedKeys = new Set(["__proto__", "constructor", "prototype"]);
+
+const previous = result[key];
+if (previous === undefined) result[key] = value;
+else if (Array.isArray(previous)) previous.push(value);
+else result[key] = [previous, value];
+```
+
+That excerpt is from the checked-in reference oracle, not an output from the paired benchmark. Actual plain-Codex and OMCS-generated examples will be published only from the verified paired run, including failures and regressions rather than cherry-picked successes.
 
 ```bash
 omcs benchmark plan bench/prompt-refinement-pilot.json --json

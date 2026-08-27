@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { parseSvgDiagram, REVIEWED_PNG_FIXTURES, verifyPublicDocs } from "../verify-doc-assets.js";
+import { assertMonochromeSvg, parseSvgDiagram, REVIEWED_PNG_FIXTURES, verifyPublicDocs } from "../verify-doc-assets.js";
 
 const repositoryRoot = process.cwd();
 
@@ -11,8 +11,9 @@ describe("public OMCS documentation assets", () => {
 	it("accepts the checked-in guides, diagrams, and sanitized terminal fixtures", async () => {
 		const report = await verifyPublicDocs({ repositoryRoot });
 
-		assert.equal(report.guides, 9);
+		assert.equal(report.guides, 10);
 		assert.deepEqual(report.diagrams, ["omcs-config-precedence", "omcs-pipeline", "omcs-routing"]);
+		assert.deepEqual(report.charts, ["omcs-benchmark-calibration", "omcs-benchmark-results"]);
 		assert.deepEqual(report.screenshots, ["omcs-configure-project.png", "omcs-route-declaration.png", "omcs-verification-receipt.png"]);
 	});
 
@@ -40,8 +41,41 @@ describe("public OMCS documentation assets", () => {
 			const svg = await readFile(join(repositoryRoot, "docs", "assets", `${diagram}.svg`), "utf8");
 			assert.match(source, /^---\ntitle: .+\n---/m);
 			assert.match(svg, /<svg\b[^>]*>/i);
-			assert.match(svg, /<title>.+<\/title>/i);
+			assert.match(svg, /<title\b[^>]*>.+<\/title>/i);
 		}
+	});
+
+	it("keeps every README chart monochrome and free of decorative effects", async () => {
+		for (const name of [
+			"omcs-pipeline",
+			"omcs-routing",
+			"omcs-config-precedence",
+			"omcs-benchmark-calibration",
+			"omcs-benchmark-results",
+		]) {
+			const svg = await readFile(join(repositoryRoot, "docs", "assets", `${name}.svg`), "utf8");
+			assert.doesNotMatch(svg, /<(?:linearGradient|radialGradient|filter)\b/i, name);
+			assert.match(svg, /<svg\b[^>]*aria-labelledby="title desc"[^>]*>/i, `${name} declares its accessible labels`);
+			assert.match(svg, /<title id="title">[^<]+<\/title>/i, `${name} identifies its title`);
+			assert.match(svg, /<desc id="desc">[^<]+<\/desc>/i, `${name} identifies its description`);
+			const colors = [...svg.matchAll(/#[0-9a-f]{6}\b/gi)].map(([color]) => color.toUpperCase());
+			assert.ok(colors.length > 0, `${name} has explicit palette colors`);
+			assert.deepEqual(
+				[...new Set(colors)].sort(),
+				[...new Set(colors)].sort().filter((color) => ["#111111", "#525252", "#A3A3A3", "#E5E5E5", "#F5F5F5", "#FFFFFF"].includes(color)),
+				`${name} uses only the reviewed monochrome palette`,
+			);
+		}
+	});
+
+	it("rejects named, functional, shorthand, and style-based colors", () => {
+		for (const unsafe of [
+			'<svg fill="#FFFFFF"><rect fill="red"/></svg>',
+			'<svg fill="#FFFFFF"><path stroke="rgb(255, 0, 0)"/></svg>',
+			'<svg fill="#FFFFFF"><path color="#f00"/></svg>',
+			'<svg fill="#FFFFFF"><path style="fill: #111111"/></svg>',
+			'<svg fill="#FFFFFF"><style>path { fill: #111111; }</style></svg>',
+		]) assert.throws(() => assertMonochromeSvg(unsafe, "fixture.svg"), /monochrome/i);
 	});
 
 	it("rejects malformed SVG XML instead of treating tag-shaped text as a diagram", () => {

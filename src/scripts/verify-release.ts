@@ -87,6 +87,8 @@ export const APPROVED_PACKED_MANIFEST = [
 	"dist/scripts/public-secret-scan.js",
 	"docs/agents-and-skills.md",
 	"docs/architecture.md",
+	"docs/assets/omcs-benchmark-calibration.svg",
+	"docs/assets/omcs-benchmark-results.svg",
 	"docs/assets/omcs-config-precedence.svg",
 	"docs/assets/omcs-configure-project.png",
 	"docs/assets/omcs-pipeline.svg",

@@ -15,18 +15,22 @@ const guidePaths = [
 	"docs/agents-and-skills.md",
 	"docs/configuration.md",
 	"docs/examples.md",
+	"docs/benchmarking.md",
 ] as const;
 
 const diagramNames = ["omcs-config-precedence", "omcs-pipeline", "omcs-routing"] as const;
+const chartNames = ["omcs-benchmark-calibration", "omcs-benchmark-results"] as const;
 const screenshotNames = ["omcs-configure-project.png", "omcs-route-declaration.png", "omcs-verification-receipt.png"] as const;
 const maxAssetBytes = 1_000_000;
 const minDimension = 320;
 const maxDimension = 2_400;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const monochromePalette = new Set(["#111111", "#525252", "#A3A3A3", "#E5E5E5", "#F5F5F5", "#FFFFFF", "NONE"]);
 
 export interface PublicDocsReport {
 	guides: number;
 	diagrams: string[];
+	charts: string[];
 	screenshots: string[];
 }
 
@@ -209,6 +213,18 @@ function assertDimensions(path: string, width: number, height: number): void {
 	}
 }
 
+/** Keeps public diagrams in the reviewed neutral palette without hidden CSS escape hatches. */
+export function assertMonochromeSvg(source: string, path: string): void {
+	if (/<(?:linearGradient|radialGradient|filter|style)\b|\sstyle\s*=/i.test(source)) {
+		fail(`SVG is not monochrome: decorative effect or style escape in ${path}`);
+	}
+	const colorAttributes = source.matchAll(/\b(?:fill|stroke|color|stop-color|flood-color|lighting-color)\s*=\s*(["'])(.*?)\1/gi);
+	for (const match of colorAttributes) {
+		const value = match[2]?.trim().toUpperCase() ?? "";
+		if (!monochromePalette.has(value)) fail(`SVG is not monochrome: unreviewed color in ${path}`);
+	}
+}
+
 const unsafeContentPatterns: readonly RegExp[] = [
 	/\/Users\/(?!example\/)/i,
 	/\b(?:rafszuminski|localhost)\b/i,
@@ -282,7 +298,7 @@ async function assertReadmeLinks(root: string): Promise<void> {
 		const target = guide.replace(/^docs\//, "docs/");
 		if (!readme.includes(`](${target})`)) fail(`README does not link required guide: ${target}`);
 	}
-	for (const asset of ["omcs-pipeline.svg", ...screenshotNames]) {
+	for (const asset of ["omcs-pipeline.svg", ...chartNames.map((name) => `${name}.svg`), ...screenshotNames]) {
 		if (!readme.includes(`docs/assets/${asset}`)) fail(`README does not embed required asset: ${asset}`);
 	}
 }
@@ -301,7 +317,18 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		const source = await readFile(sourcePath, "utf8");
 		const svg = await readFile(svgPath, "utf8");
 		assertAssetSize(svgPath, Buffer.from(svg));
+		assertMonochromeSvg(svg, svgPath);
 		if (titleFromMermaid(source, sourcePath) !== parseSvgDiagram(svg, svgPath).title) fail(`diagram titles do not match: ${diagram}`);
+	}
+
+	for (const chart of chartNames) {
+		const path = join(root, "docs", "assets", `${chart}.svg`);
+		const bytes = await readFile(path);
+		assertAssetSize(path, bytes);
+		const source = bytes.toString("utf8");
+		assertMonochromeSvg(source, path);
+		const { width, height } = parseSvgDiagram(source, path);
+		assertDimensions(path, width, height);
 	}
 
 	for (const screenshot of screenshotNames) {
@@ -313,10 +340,10 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		await assertReviewedPng(root, screenshot, pngReviewManifest[screenshot]);
 	}
 
-	return { guides: guidePaths.length, diagrams: [...diagramNames], screenshots: [...screenshotNames] };
+	return { guides: guidePaths.length, diagrams: [...diagramNames], charts: [...chartNames], screenshots: [...screenshotNames] };
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
 	const report = await verifyPublicDocs();
-	process.stdout.write(`verified ${report.guides} guides, ${report.diagrams.length} diagrams, and ${report.screenshots.length} screenshots\n`);
+	process.stdout.write(`verified ${report.guides} guides, ${report.diagrams.length} diagrams, ${report.charts.length} charts, and ${report.screenshots.length} screenshots\n`);
 }

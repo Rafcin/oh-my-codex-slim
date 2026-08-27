@@ -31,6 +31,13 @@ This is a product-level activation comparison. It measures the full OMCS prompt,
 
 The public pilot is a canary for harness and prompt refinement. Its fixtures, graders, and oracle solutions are public, so results must not be presented as held-out leaderboard evidence. The repository test gate proves every starting fixture fails its grader and every oracle passes before the suite can be used.
 
+The README intentionally separates two displays:
+
+- **grader calibration:** 0 of 6 untouched fixtures pass; 6 of 6 checked-in reference oracles pass;
+- **comparative performance:** pending until the quota-consuming 36-run plain-Codex-versus-OMCS matrix is explicitly approved and completed.
+
+The checked-in reference oracle is acceptance-test evidence, not output from the paired benchmark. Published generated-code examples must come from the paired run and include representative failures or regressions alongside successes.
+
 Plan or dry-run it without model usage:
 
 ```bash

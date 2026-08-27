@@ -89,6 +89,8 @@ describe("release verification isolation", () => {
 			"docs/assets/omcs-pipeline.svg",
 			"docs/assets/omcs-routing.svg",
 			"docs/assets/omcs-config-precedence.svg",
+			"docs/assets/omcs-benchmark-calibration.svg",
+			"docs/assets/omcs-benchmark-results.svg",
 			"docs/assets/omcs-configure-project.png",
 			"docs/assets/omcs-route-declaration.png",
 			"docs/assets/omcs-verification-receipt.png",
