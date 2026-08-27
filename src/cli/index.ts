@@ -7,11 +7,21 @@ import { setup } from "./setup.js";
 import { status } from "./status.js";
 import { uninstall } from "./uninstall.js";
 import { update } from "./update.js";
-import { configureOmcs, showEffectiveConfig, validateOmcsConfigFile } from "./config.js";
+import {
+	configureOmcs,
+	showEffectiveConfig,
+	validateOmcsConfigFile,
+} from "./config.js";
 import { resolveCodexHome } from "../config/codex-home.js";
 import { findProjectRoot } from "../config/omcs-config.js";
 import { omcsPackageRoot } from "./package-root.js";
 import { symbolizeShareableOutput } from "./shareable-output.js";
+import {
+	dryRunBenchmarkFile,
+	executeBenchmarkFile,
+	planBenchmarkFile,
+	reportBenchmarkFile,
+} from "./benchmark.js";
 
 export { symbolizeShareableOutput } from "./shareable-output.js";
 
@@ -27,6 +37,10 @@ Usage:
 	  omcs configure --scope project|global|session --profile auto|fast|thorough|council [--update] [--dry-run] [--json]
   omcs config show --effective [--json]
   omcs config validate [path] [--json]
+	  omcs benchmark plan <suite.json> [--json]
+	  omcs benchmark run <suite.json> --dry-run [--json]
+	  omcs benchmark run <suite.json> --execute --approve-model-usage [--resume <private-run-dir>] [--json]
+	  omcs benchmark report <results.json> [--json]
 `;
 
 async function writeResult(value: unknown, asJson: boolean): Promise<void> {
@@ -138,36 +152,80 @@ export async function main(
 			const remaining: string[] = [];
 			for (let index = 0; index < options.length; index += 1) {
 				const option = options[index];
-				if (option !== "--scope" && option !== "--profile") { remaining.push(option!); continue; }
+				if (option !== "--scope" && option !== "--profile") {
+					remaining.push(option!);
+					continue;
+				}
 				const value = options[index + 1];
 				if (option === "--scope") {
-					if (scope || !["project", "global", "session"].includes(value ?? "")) { invalid("configure"); return; }
+					if (
+						scope ||
+						!["project", "global", "session"].includes(value ?? "")
+					) {
+						invalid("configure");
+						return;
+					}
 					scope = value as "project" | "global" | "session";
 				} else {
-					if (profile || !["auto", "fast", "thorough", "council"].includes(value ?? "")) { invalid("configure"); return; }
+					if (
+						profile ||
+						!["auto", "fast", "thorough", "council"].includes(value ?? "")
+					) {
+						invalid("configure");
+						return;
+					}
 					profile = value as "auto" | "fast" | "thorough" | "council";
 				}
 				index += 1;
 			}
 			const parsed = flags(remaining, ["--update", "--dry-run", "--json"]);
-			if (!scope || !profile || !parsed || (scope === "session" && remaining.includes("--update"))) { invalid("configure"); return; }
-			await writeResult(await configureOmcs({ scope, profile, update: remaining.includes("--update"), dryRun: parsed.dryRun }), parsed.json);
+			if (
+				!scope ||
+				!profile ||
+				!parsed ||
+				(scope === "session" && remaining.includes("--update"))
+			) {
+				invalid("configure");
+				return;
+			}
+			await writeResult(
+				await configureOmcs({
+					scope,
+					profile,
+					update: remaining.includes("--update"),
+					dryRun: parsed.dryRun,
+				}),
+				parsed.json,
+			);
 			return;
 		}
 		case "config": {
 			const [subcommand, ...configOptions] = options;
 			if (subcommand === "show") {
 				const parsed = flags(configOptions, ["--effective", "--json"]);
-				if (!parsed || !configOptions.includes("--effective")) { invalid("config show"); return; }
+				if (!parsed || !configOptions.includes("--effective")) {
+					invalid("config show");
+					return;
+				}
 				await writeResult(await showEffectiveConfig(), parsed.json);
 				return;
 			}
 			if (subcommand === "validate") {
-				const positionals = configOptions.filter((option) => !option.startsWith("--"));
-				const switches = configOptions.filter((option) => option.startsWith("--"));
+				const positionals = configOptions.filter(
+					(option) => !option.startsWith("--"),
+				);
+				const switches = configOptions.filter((option) =>
+					option.startsWith("--"),
+				);
 				const parsed = flags(switches, ["--json"]);
-				if (!parsed || positionals.length > 1) { invalid("config validate"); return; }
-				await writeResult(await validateOmcsConfigFile(positionals[0] ?? "omcs.config.json"), parsed.json);
+				if (!parsed || positionals.length > 1) {
+					invalid("config validate");
+					return;
+				}
+				await writeResult(
+					await validateOmcsConfigFile(positionals[0] ?? "omcs.config.json"),
+					parsed.json,
+				);
 				return;
 			}
 			invalid("config");
@@ -214,6 +272,63 @@ export async function main(
 			}
 			await writeResult(
 				await agentsLifecycle(action, { dryRun: parsed.dryRun }),
+				parsed.json,
+			);
+			return;
+		}
+		case "benchmark": {
+			const [action, path, ...benchmarkOptions] = options;
+			if (
+				!action ||
+				!path ||
+				path.startsWith("--") ||
+				!["plan", "run", "report"].includes(action)
+			) {
+				invalid("benchmark");
+				return;
+			}
+			if (action === "plan" || action === "report") {
+				const parsed = flags(benchmarkOptions, ["--json"]);
+				if (!parsed) {
+					invalid(`benchmark ${action}`);
+					return;
+				}
+				await writeResult(
+					action === "plan"
+						? await planBenchmarkFile(path)
+						: await reportBenchmarkFile(path),
+					parsed.json,
+				);
+				return;
+			}
+			const resumeIndex = benchmarkOptions.indexOf("--resume");
+			const resumeDirectory =
+				resumeIndex >= 0 ? benchmarkOptions[resumeIndex + 1] : undefined;
+			const normalizedOptions = [...benchmarkOptions];
+			if (resumeIndex >= 0) normalizedOptions.splice(resumeIndex, 2);
+			const parsed = flags(normalizedOptions, [
+				"--dry-run",
+				"--execute",
+				"--approve-model-usage",
+				"--json",
+			]);
+			const dryRun = normalizedOptions.includes("--dry-run");
+			const execute = normalizedOptions.includes("--execute");
+			const approved = normalizedOptions.includes("--approve-model-usage");
+			if (
+				!parsed ||
+				dryRun === execute ||
+				execute !== approved ||
+				(resumeIndex >= 0 &&
+					(!resumeDirectory || resumeDirectory.startsWith("--") || dryRun))
+			) {
+				invalid("benchmark run");
+				return;
+			}
+			await writeResult(
+				dryRun
+					? await dryRunBenchmarkFile(path)
+					: await executeBenchmarkFile(path, resumeDirectory),
 				parsed.json,
 			);
 			return;

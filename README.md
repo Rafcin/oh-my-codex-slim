@@ -115,6 +115,17 @@ Update is explicit-only and reuses setup ownership. Uninstall removes only the c
 
 The repository retains attributed legacy Codex Router compatibility code only so a user with an earlier OMCS migration manifest can recover or inspect rollback state. Codex Router is not the supported active transport, and OMCS no longer exposes Router installation, update, panel, or OpenCodex-to-Router cutover as normal lifecycle operations.
 
+## Benchmark OMCS against plain Codex
+
+OMCS ships a paired, hidden-grader benchmark harness and a six-task calibration pilot. It freezes and hashes the model controls, prompts, fixtures, graders, Codex version, and OMCS plugin surface; runs plain Codex without user rules, plugins, or hooks; runs OMCS with the exact plugin, MCP, and eight-agent catalog; and grades both in a pinned, networkless, read-only container. Reports show verified success, paired regressions, time, tokens when available, and safety violations without collapsing them into a vanity score.
+
+```bash
+omcs benchmark plan bench/prompt-refinement-pilot.json --json
+omcs benchmark run bench/prompt-refinement-pilot.json --dry-run --json
+```
+
+The default pilot is 36 model runs and is never launched by planning, testing, or release verification. Actual execution requires both explicit user approval for that matrix and the CLI's `--execute --approve-model-usage` gate. See [benchmarking OMCS](docs/benchmarking.md) for task-quality proof, isolation, interpretation, prompt-refinement workflow, and private held-out suites.
+
 ## Privacy and verification
 
 Local runtime state under `.omcs/`, `.gjc/`, and `.superpowers/sdd/` is ignored and must never be committed. `npm run verify:release` is an offline acceptance gate. A real model smoke is optional, billed, and requires separate explicit approval.

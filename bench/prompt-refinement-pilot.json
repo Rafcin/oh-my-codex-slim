@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "name": "prompt-refinement-pilot",
+  "description": "Public calibration canary for paired plain Codex versus OMCS auto prompt refinement. Do not treat it as held-out leaderboard evidence.",
+  "model": "gpt-5.6-terra",
+  "reasoningEffort": "high",
+  "sandbox": "workspace-write",
+  "timeoutSeconds": 900,
+  "repetitions": 3,
+  "seed": "omcs-prompt-refinement-pilot-v1",
+  "conditions": [
+    { "id": "codex-default", "kind": "codex-default" },
+    { "id": "omcs-auto", "kind": "omcs", "profile": "auto" }
+  ],
+  "tasks": [
+    {
+      "id": "query-parser-regression",
+      "title": "Repair a query parser regression",
+      "category": "bugfix",
+      "fixture": "fixtures/query-parser-regression",
+      "prompt": "Repair parseQuery in src/query.js. Preserve its public export. It must decode URL query strings, convert plus signs to spaces, preserve repeated keys as arrays in insertion order, treat missing values as empty strings, and ignore prototype-pollution keys. Add or improve tests and verify the result.",
+      "grader": ["node", "graders/query-parser-regression.mjs"],
+      "graderAssets": ["graders/query-parser-regression.mjs", "graders/lib.mjs"]
+    },
+    {
+      "id": "retry-client-feature",
+      "title": "Implement a bounded retry client",
+      "category": "feature",
+      "fixture": "fixtures/retry-client-feature",
+      "prompt": "Implement the retry policy and fetchWithRetry behavior in src/retry-policy.js and src/client.js. Retry HTTP 429 and 5xx responses plus thrown transport errors, never retry other 4xx responses, use exponential delays from the supplied base delay, enforce maxAttempts as the total number of calls, and preserve the final response or thrown error. Keep time injectable through the existing sleep option, add tests, and avoid unrelated changes.",
+      "grader": ["node", "graders/retry-client-feature.mjs"],
+      "graderAssets": ["graders/retry-client-feature.mjs", "graders/lib.mjs"]
+    },
+    {
+      "id": "config-merge-diagnosis",
+      "title": "Diagnose a configuration merge defect",
+      "category": "diagnosis",
+      "fixture": "fixtures/config-merge-diagnosis",
+      "prompt": "Diagnose and fix the configuration merge regression in src/merge-config.js. Keep mergeConfig's public API. Nested plain objects must merge recursively, arrays must be replaced with defensive copies, null must remain an explicit override, neither input may be mutated, and prototype-pollution keys must be ignored. Add focused regression tests and explain the root cause in the final response.",
+      "grader": ["node", "graders/config-merge-diagnosis.mjs"],
+      "graderAssets": ["graders/config-merge-diagnosis.mjs", "graders/lib.mjs"]
+    },
+    {
+      "id": "artifact-path-security",
+      "title": "Close an artifact path traversal",
+      "category": "security",
+      "fixture": "fixtures/artifact-path-security",
+      "prompt": "Harden resolveArtifactPath in src/path.js without changing its public signature. It may resolve only non-empty relative artifact paths contained by the supplied root. Reject absolute paths, parent traversal, NUL bytes, backslash-based traversal, and sibling-prefix escapes. Return a normalized absolute path for valid input. Add security regression tests and keep the change narrowly scoped.",
+      "grader": ["node", "graders/artifact-path-security.mjs"],
+      "graderAssets": ["graders/artifact-path-security.mjs", "graders/lib.mjs"]
+    },
+    {
+      "id": "inventory-reservation-feature",
+      "title": "Implement atomic inventory reservations",
+      "category": "feature",
+      "fixture": "fixtures/inventory-reservation-feature",
+      "prompt": "Implement reserveInventory in src/inventory.js. Quantities in inventory and the request must be positive safe integers. Reject missing SKUs, invalid quantities, and insufficient stock without mutating the inventory input. On success return a new inventory object and an allocations array in request insertion order. Preserve unrelated SKUs, add tests, and keep the module dependency-free.",
+      "grader": ["node", "graders/inventory-reservation-feature.mjs"],
+      "graderAssets": ["graders/inventory-reservation-feature.mjs", "graders/lib.mjs"]
+    },
+    {
+      "id": "execution-docs",
+      "title": "Document an orchestration execution model",
+      "category": "docs",
+      "fixture": "fixtures/execution-docs",
+      "prompt": "Turn README.md into a concise user guide for the sample orchestration tool. Explain the fast, auto, and thorough profiles; show the intake-to-verification lifecycle with a Mermaid flow diagram; distinguish public profiles from internal solo, delegate, audit, and full routes; explain that credentials are never stored in receipts; and distinguish source, isolated-local, and runtime verification. Keep it approachable and do not invent telemetry or provider support.",
+      "grader": ["node", "graders/execution-docs.mjs"],
+      "graderAssets": ["graders/execution-docs.mjs", "graders/lib.mjs"]
+    }
+  ]
+}
