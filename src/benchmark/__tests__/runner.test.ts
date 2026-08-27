@@ -17,10 +17,12 @@ describe("benchmark runner safety and parity", () => {
 		});
 
 		const execIndex = invocation.args.indexOf("exec");
-		assert.deepEqual(invocation.args.slice(execIndex, execIndex + 9), [
+		assert.deepEqual(invocation.args.slice(execIndex, execIndex + 11), [
 			"exec",
 			"--json",
 			"--ephemeral",
+			"--sandbox",
+			"workspace-write",
 			"--ignore-user-config",
 			"--ignore-rules",
 			"--disable",
@@ -29,6 +31,10 @@ describe("benchmark runner safety and parity", () => {
 			"hooks",
 		]);
 		assert.deepEqual(invocation.args.slice(0, 2), ["--ask-for-approval", "never"]);
+		assert.deepEqual(
+			invocation.args.slice(invocation.args.indexOf("--sandbox"), invocation.args.indexOf("--sandbox") + 2),
+			["--sandbox", "workspace-write"],
+		);
 		assert.ok(invocation.args.includes('default_permissions="omcs-benchmark"'));
 		assert.ok(
 			invocation.args.includes(
@@ -36,6 +42,31 @@ describe("benchmark runner safety and parity", () => {
 			),
 		);
 		assert.equal(invocation.stdin, "Repair the issue.");
+	});
+
+	it("passes a read-only sandbox through to Codex exec", () => {
+		const invocation = buildCodexInvocation({
+			kind: "codex-default",
+			model: "gpt-5.6-terra",
+			reasoningEffort: "high",
+			sandbox: "read-only",
+			workingDirectory: "/private/fixture",
+			toolDirectory: "/private/tools",
+			prompt: "Inspect the issue.",
+		});
+
+		assert.deepEqual(
+			invocation.args.slice(
+				invocation.args.indexOf("--sandbox"),
+				invocation.args.indexOf("--sandbox") + 2,
+			),
+			["--sandbox", "read-only"],
+		);
+		assert.ok(
+			invocation.args.some((argument) =>
+				argument.includes('\":project_roots\"=\"read\"'),
+			),
+		);
 	});
 
 	it("uses a Codex CLI argument order accepted without starting a model", (context) => {
@@ -72,6 +103,10 @@ describe("benchmark runner safety and parity", () => {
 
 		assert.ok(invocation.args.includes("gpt-5.6-terra"));
 		assert.ok(invocation.args.includes('model_reasoning_effort="high"'));
+		assert.deepEqual(
+			invocation.args.slice(invocation.args.indexOf("--sandbox"), invocation.args.indexOf("--sandbox") + 2),
+			["--sandbox", "workspace-write"],
+		);
 		assert.ok(
 			invocation.args.some((argument) => argument.includes('":project_roots"="write"')),
 		);

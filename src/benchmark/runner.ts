@@ -74,6 +74,8 @@ export function buildCodexInvocation(
 			"exec",
 			"--json",
 			"--ephemeral",
+			"--sandbox",
+			input.sandbox,
 			...treatmentArgs,
 			"--model",
 			input.model,
