@@ -1,9 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
-  <title id="title">OMCS paired benchmark results status</title>
-  <desc id="desc">A monochrome results panel showing that an invalidated run is not performance evidence and the corrected 36-run comparison awaits separate approval.</desc>
-  <rect width="1200" height="620" fill="#FFFFFF"/>
-  <text x="64" y="66" font-family="ui-sans-serif, system-ui, sans-serif" font-size="32" font-weight="700" fill="#111111">Plain Codex vs OMCS</text><text x="64" y="102" font-family="ui-sans-serif, system-ui, sans-serif" font-size="17" fill="#525252">Paired public pilot · same model controls · hidden graders</text>
-  <rect x="64" y="142" width="1072" height="58" rx="8" fill="#111111"/><text x="88" y="179" font-family="ui-sans-serif, system-ui, sans-serif" font-size="17" font-weight="700" fill="#FFFFFF">STATUS</text><text x="212" y="179" font-family="ui-sans-serif, system-ui, sans-serif" font-size="17" fill="#FFFFFF">Invalid run withheld · corrected 36-run rerun awaits separate approval</text>
-  <g font-family="ui-sans-serif, system-ui, sans-serif"><text x="64" y="266" font-size="14" font-weight="700" fill="#525252">METRIC</text><text x="710" y="266" font-size="14" font-weight="700" fill="#525252">PLAIN CODEX</text><text x="934" y="266" font-size="14" font-weight="700" fill="#525252">OMCS AUTO</text><g font-size="17" fill="#111111"><line x1="64" y1="286" x2="1136" y2="286" stroke="#111111" stroke-width="2"/><text x="64" y="328">Verified task success</text><text x="710" y="328">—</text><text x="934" y="328">—</text><line x1="64" y1="352" x2="1136" y2="352" stroke="#E5E5E5"/><text x="64" y="394">Median wall time</text><text x="710" y="394">—</text><text x="934" y="394">—</text><line x1="64" y1="418" x2="1136" y2="418" stroke="#E5E5E5"/><text x="64" y="460">Median tokens, when reported</text><text x="710" y="460">—</text><text x="934" y="460">—</text><line x1="64" y1="484" x2="1136" y2="484" stroke="#E5E5E5"/><text x="64" y="526">Safety violations</text><text x="710" y="526">—</text><text x="934" y="526">—</text></g><text x="64" y="584" font-size="15" fill="#525252">No placeholder bars. No synthetic wins. This panel changes only from a verified benchmark report.</text></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">OMCS performance evaluation against plain Codex</title>
+  <desc id="desc">Three paired benchmark panels compare verified success, median wall time, and median tokens across eighteen runs per arm. Plain Codex achieved 88.9 percent verified success versus 83.3 percent for OMCS. OMCS used 1.99 times the median wall time and a 3.25 times complete-pair median-token ratio.</desc>
+  <rect width="1600" height="900" fill="#FFFFFF"/>
+  <text x="56" y="78" font-family="ui-sans-serif, system-ui, sans-serif" font-size="42" font-weight="700" fill="#111111">OMCS Performance Evaluation</text>
+  <text x="56" y="116" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" fill="#525252">6 tasks · 3 repetitions · 18 paired outcomes · gpt-5.6-terra · high reasoning · hidden graders</text>
+  <rect x="56" y="146" width="22" height="22" rx="4" fill="#A3A3A3"/><text x="90" y="164" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="600" fill="#525252">Plain Codex</text>
+  <rect x="238" y="146" width="22" height="22" rx="4" fill="#1E8CF4"/><text x="272" y="164" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" font-weight="600" fill="#111111">OMCS auto</text>
+  <text x="1544" y="164" text-anchor="end" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#525252">August 27, 2026 · paired public canary</text>
+  <g font-family="ui-sans-serif, system-ui, sans-serif">
+    <text x="70" y="248" font-size="25" font-weight="700" fill="#111111">Verified success</text><text x="70" y="278" font-size="16" fill="#525252">Higher is better · Wilson 95% intervals in report</text>
+    <line x1="76" y1="672" x2="470" y2="672" stroke="#A3A3A3" stroke-width="2"/>
+    <rect x="124" y="351" width="112" height="321" rx="5" fill="#A3A3A3"/><text x="180" y="332" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">88.9%</text><text x="180" y="706" text-anchor="middle" font-size="17" fill="#525252">16 / 18</text>
+    <rect x="270" y="371" width="112" height="301" rx="5" fill="#1E8CF4"/><text x="326" y="352" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">83.3%</text><text x="326" y="706" text-anchor="middle" font-size="17" fill="#525252">15 / 18</text>
+    <rect x="110" y="752" width="326" height="48" rx="24" fill="#F5F5F5" stroke="#A3A3A3"/><text x="273" y="782" text-anchor="middle" font-size="18" font-weight="600" fill="#525252">OMCS delta −5.6 percentage points</text>
+    <text x="604" y="248" font-size="25" font-weight="700" fill="#111111">Median wall time</text><text x="604" y="278" font-size="16" fill="#525252">Lower is better · timeout retained in outcome data</text>
+    <line x1="610" y1="672" x2="1004" y2="672" stroke="#A3A3A3" stroke-width="2"/>
+    <rect x="658" y="513" width="112" height="159" rx="5" fill="#A3A3A3"/><text x="714" y="494" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">64.9s</text><text x="714" y="706" text-anchor="middle" font-size="17" fill="#525252">Plain</text>
+    <rect x="804" y="356" width="112" height="316" rx="5" fill="#1E8CF4"/><text x="860" y="337" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">129.0s</text><text x="860" y="706" text-anchor="middle" font-size="17" fill="#525252">OMCS</text>
+    <rect x="652" y="752" width="326" height="48" rx="24" fill="#F5F5F5" stroke="#A3A3A3"/><text x="815" y="782" text-anchor="middle" font-size="18" font-weight="600" fill="#525252">OMCS is 1.99× slower at median</text>
+    <text x="1138" y="248" font-size="25" font-weight="700" fill="#111111">Median total tokens</text><text x="1138" y="278" font-size="16" fill="#525252">Lower is better · usage observed on 35 / 36 runs</text>
+    <line x1="1144" y1="672" x2="1538" y2="672" stroke="#A3A3A3" stroke-width="2"/>
+    <rect x="1192" y="573" width="112" height="99" rx="5" fill="#A3A3A3"/><text x="1248" y="554" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">87.4k</text><text x="1248" y="706" text-anchor="middle" font-size="17" fill="#525252">18 / 18</text>
+    <rect x="1338" y="356" width="112" height="316" rx="5" fill="#1E8CF4"/><text x="1394" y="337" text-anchor="middle" font-size="24" font-weight="700" fill="#111111">280.0k</text><text x="1394" y="706" text-anchor="middle" font-size="17" fill="#525252">17 / 18</text>
+    <rect x="1186" y="752" width="326" height="48" rx="24" fill="#F5F5F5" stroke="#A3A3A3"/><text x="1349" y="782" text-anchor="middle" font-size="18" font-weight="600" fill="#525252">complete-pair ratio 3.25×</text>
+  </g>
+  <line x1="56" y1="844" x2="1544" y2="844" stroke="#E5E5E5"/>
+  <text x="56" y="875" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#525252">Result: no verified overall quality gain in this small CLI canary; orchestration overhead and one 56-minute timeout are the primary weaknesses.</text>
 </svg>

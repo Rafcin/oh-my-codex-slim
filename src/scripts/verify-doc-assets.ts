@@ -19,13 +19,24 @@ const guidePaths = [
 ] as const;
 
 const diagramNames = ["omcs-config-precedence", "omcs-pipeline", "omcs-routing"] as const;
-const chartNames = ["omcs-benchmark-calibration", "omcs-benchmark-results"] as const;
+const chartNames = ["omcs-benchmark-calibration", "omcs-benchmark-results", "omcs-benchmark-task-outcomes"] as const;
 const terminalNames = ["omcs-configure-project.svg", "omcs-route-declaration.svg", "omcs-verification-receipt.svg"] as const;
 const maxAssetBytes = 1_000_000;
 const minDimension = 320;
 const maxDimension = 2_400;
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const monochromePalette = new Set(["#111111", "#525252", "#A3A3A3", "#E5E5E5", "#F5F5F5", "#FFFFFF", "NONE"]);
+const benchmarkPalette = new Set([...monochromePalette, "#1E8CF4"]);
+const benchmarkElements = new Set(["svg", "title", "desc", "rect", "line", "text", "g"]);
+const benchmarkAttributes: Readonly<Record<string, ReadonlySet<string>>> = {
+	svg: new Set(["xmlns", "viewBox", "role", "aria-labelledby"]),
+	title: new Set(["id"]),
+	desc: new Set(["id"]),
+	rect: new Set(["x", "y", "width", "height", "rx", "fill", "stroke", "stroke-width"]),
+	line: new Set(["x1", "y1", "x2", "y2", "stroke", "stroke-width"]),
+	text: new Set(["x", "y", "text-anchor", "font-family", "font-size", "font-weight", "fill"]),
+	g: new Set(["font-family", "font-size"]),
+};
 const terminalPalette = new Set([
 	"#00CA4E", "#171717", "#202020", "#303030", "#525252", "#7DD3C7", "#A3A3A3", "#A7F3D0", "#B7A7FF",
 	"#D4D4D4", "#E5E5E5", "#F5F5F5", "#F7F7F5", "#FDE68A", "#FF605C", "#FFBD44", "NONE",
@@ -233,6 +244,50 @@ export function assertMonochromeSvg(source: string, path: string): void {
 	}
 }
 
+/** Allows one reviewed OMCS accent while retaining the inert, effect-free chart boundary. */
+export function assertBenchmarkChartSvg(source: string, path: string): void {
+	if (
+		/<(?:linearGradient|radialGradient|filter|style|script|foreignObject|image|use|a|iframe|object|embed|animate|set)\b/i.test(source)
+		|| /<\?xml-stylesheet\b|<!DOCTYPE\b|<!\[CDATA\[|<!--/i.test(source)
+		|| /\s(?:on[a-z0-9:_-]+|style|(?:xlink:)?href|filter|cursor|clip-path|mask)\s*=/i.test(source)
+	) {
+		fail(`SVG is outside the benchmark palette: decorative effect or style escape in ${path}`);
+	}
+	let index = 0;
+	while (index < source.length) {
+		const start = source.indexOf("<", index);
+		if (start < 0) break;
+		if (source.startsWith("<?", start)) {
+			const end = source.indexOf("?>", start + 2);
+			if (end < 0) fail(`SVG is outside the benchmark palette: invalid processing instruction in ${path}`);
+			if (start !== 0 || source.slice(start, end + 2) !== '<?xml version="1.0" encoding="UTF-8"?>') {
+				fail(`SVG is outside the benchmark palette: unreviewed processing instruction in ${path}`);
+			}
+			index = end + 2;
+			continue;
+		}
+		if (source.startsWith("</", start)) {
+			const end = source.indexOf(">", start + 2);
+			if (end < 0) fail(`SVG is outside the benchmark palette: invalid closing element in ${path}`);
+			index = end + 1;
+			continue;
+		}
+		const end = readTagEnd(source, start + 1);
+		const parsed = parseAttributes(source.slice(start + 1, end), path);
+		if (!benchmarkElements.has(parsed.name)) fail(`SVG is outside the benchmark palette: unreviewed element in ${path}`);
+		const allowedAttributes = benchmarkAttributes[parsed.name];
+		if (!allowedAttributes || Object.keys(parsed.attributes).some((attribute) => !allowedAttributes.has(attribute))) {
+			fail(`SVG is outside the benchmark palette: unreviewed attribute in ${path}`);
+		}
+		index = end + 1;
+	}
+	const colorAttributes = source.matchAll(/\b(?:fill|stroke|color|stop-color|flood-color|lighting-color)\s*=\s*(["'])(.*?)\1/gi);
+	for (const match of colorAttributes) {
+		const value = match[2]?.trim().toUpperCase() ?? "";
+		if (!benchmarkPalette.has(value)) fail(`SVG is outside the benchmark palette: unreviewed color in ${path}`);
+	}
+}
+
 /** Keeps terminal fixtures in one reviewed Ghostty-style palette with no executable or decorative escape hatches. */
 export function assertTerminalSvg(source: string, path: string): void {
 	if (
@@ -378,7 +433,8 @@ export async function verifyPublicDocs(options: VerifyPublicDocsOptions = {}): P
 		const bytes = await readFile(path);
 		assertAssetSize(path, bytes);
 		const source = bytes.toString("utf8");
-		assertMonochromeSvg(source, path);
+		if (chart === "omcs-benchmark-calibration") assertMonochromeSvg(source, path);
+		else assertBenchmarkChartSvg(source, path);
 		const { width, height } = parseSvgDiagram(source, path);
 		assertDimensions(path, width, height);
 	}

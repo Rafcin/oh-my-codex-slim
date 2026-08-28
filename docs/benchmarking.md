@@ -34,9 +34,9 @@ The public pilot is a canary for harness and prompt refinement. Its fixtures, gr
 The README intentionally separates two displays:
 
 - **grader calibration:** 0 of 6 untouched fixtures pass; 6 of 6 checked-in reference oracles pass;
-- **comparative performance:** no valid result is published. An August 27, 2026 matrix was invalidated because the treatment could not read its installed skill files; the corrected quota-consuming 36-run rerun requires separate explicit approval.
+- **comparative performance:** the valid August 27, 2026 matrix reports 16/18 Plain Codex passes and 15/18 OMCS passes, plus time, token, timeout, safety, uncertainty, and task-level outcomes separately.
 
-The checked-in reference oracle is acceptance-test evidence, not output from the paired benchmark. Published generated-code examples must come from the paired run and include representative failures or regressions alongside successes.
+The checked-in reference oracle is acceptance-test evidence, not output from the paired benchmark. The published generated-code example comes from a valid treatment transcript and is explicitly described as acceptable output rather than proof of superiority. See the [full mathematical result](benchmark-results/2026-08-27-prompt-refinement-pilot.md) and [sanitized pair-level observations](benchmark-results/prompt-refinement-pilot-2026-08-27.csv).
 
 Plan or dry-run it without model usage:
 
@@ -46,13 +46,15 @@ node dist/cli/omcs.js benchmark plan bench/prompt-refinement-pilot.json --json
 node dist/cli/omcs.js benchmark run bench/prompt-refinement-pilot.json --dry-run --json
 ```
 
-After the user explicitly approves the corrected 36-run model matrix, the execution command is:
+After the user explicitly approves a 36-run model matrix, the execution command is:
 
 ```bash
 node dist/cli/omcs.js benchmark run bench/prompt-refinement-pilot.json --execute --approve-model-usage --json
 ```
 
-The command creates both minimal Codex homes and reads back the baseline's empty integration state and the treatment's exact plugin, MCP, and eight-agent catalog state before the first model request. It temporarily links the existing private Codex authentication file into each owner-only directory so the Codex parent can authenticate. A custom filesystem permission profile exposes minimal platform paths and the benchmark workspace to model-generated commands; the treatment additionally receives read-only access to the exact installed OMCS plugin root so its skill instructions are usable. The remainder of each Codex home stays unreadable. Before execution, a no-model synthetic access probe must prove the workspace and treatment skill file are readable while each linked authentication path is not. The harness removes both temporary homes at the end, never prints or copies credential values, inherits only a small environment allowlist, and never starts a login flow.
+The command creates both minimal Codex homes and reads back the baseline's empty integration state and the treatment's exact plugin, MCP, and eight-agent catalog state before the first model request. It temporarily links the existing private Codex authentication file into each owner-only directory so the Codex parent can authenticate. A custom filesystem permission profile exposes minimal platform paths and the benchmark workspace to model-generated commands; both arms also receive the explicit `codex exec --sandbox workspace-write` control, while the treatment additionally receives read-only access to the exact installed OMCS plugin root so its skill instructions are usable. The remainder of each Codex home stays unreadable. Before execution, a no-model synthetic access probe must prove the workspace and treatment skill file are readable while each linked authentication path is not. The harness removes both temporary homes at the end, never prints or copies credential values, inherits only a small environment allowlist, and never starts a login flow.
+
+Transcript audit is a publication gate. All 18 treatment transcripts in the valid matrix contained OMCS activation evidence, all 18 control transcripts lacked it, and neither arm reported the earlier read-only or skill-access failure. This remains a CLI activation benchmark: the isolated model PATH intentionally contains no `omcs` executable, and some transcripts reported specialist lanes unavailable. It does not measure the full Codex Desktop multi-agent ceiling.
 
 Summarize a saved private result:
 
@@ -72,6 +74,10 @@ The report deliberately avoids a composite score. Compare:
 For prompt refinement, inspect only failed or regressed pairs, classify the failure before editing, and change one prompt or skill contract at a time. Keep the task suite, seed, model, reasoning effort, and repetition count frozen. Re-run the same matrix, then validate promising changes on a separate private held-out suite to avoid tuning directly to the public canary.
 
 Useful initial thresholds are an 8–10 percentage-point verified-success improvement, or non-inferior success with at least 25% fewer escaped defects, no safety violations, and a median time/token premium below roughly 50%. These are project decision thresholds, not claims about statistical significance.
+
+The valid public pilot missed those thresholds: OMCS's paired success delta was −5.6 percentage points, median wall time was 1.99× Plain Codex, and the complete-pair median-token ratio was 3.25×. The exact discordant-pair test was `p = 1.000`; with only 18 pairs, uncertainty remains wide. The immediate refinement target is a smaller `auto` route for settled narrow work plus a hard orchestration budget.
+
+Two earlier matrices are excluded from all published estimates. The first treatment could not read its skill root. The second omitted the explicit `--sandbox workspace-write` Codex control and caused the baseline to report a read-only workspace. Keeping the invalid runs documented prevents favorable but confounded numbers from being recycled.
 
 ## Authoring private held-out suites
 

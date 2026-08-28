@@ -3,7 +3,7 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it } from "node:test";
-import { assertMonochromeSvg, assertTerminalSvg, parseSvgDiagram, REVIEWED_TERMINAL_FIXTURES, verifyPublicDocs } from "../verify-doc-assets.js";
+import { assertBenchmarkChartSvg, assertMonochromeSvg, assertTerminalSvg, parseSvgDiagram, REVIEWED_TERMINAL_FIXTURES, verifyPublicDocs } from "../verify-doc-assets.js";
 
 const repositoryRoot = process.cwd();
 
@@ -13,7 +13,7 @@ describe("public OMCS documentation assets", () => {
 
 		assert.equal(report.guides, 10);
 		assert.deepEqual(report.diagrams, ["omcs-config-precedence", "omcs-pipeline", "omcs-routing"]);
-		assert.deepEqual(report.charts, ["omcs-benchmark-calibration", "omcs-benchmark-results"]);
+		assert.deepEqual(report.charts, ["omcs-benchmark-calibration", "omcs-benchmark-results", "omcs-benchmark-task-outcomes"]);
 		assert.deepEqual(report.terminals, ["omcs-configure-project.svg", "omcs-route-declaration.svg", "omcs-verification-receipt.svg"]);
 	});
 
@@ -48,13 +48,12 @@ describe("public OMCS documentation assets", () => {
 		}
 	});
 
-	it("keeps every README chart monochrome and free of decorative effects", async () => {
+	it("keeps diagrams monochrome and benchmark charts inside the reviewed editorial palette", async () => {
 		for (const name of [
 			"omcs-pipeline",
 			"omcs-routing",
 			"omcs-config-precedence",
 			"omcs-benchmark-calibration",
-			"omcs-benchmark-results",
 		]) {
 			const svg = await readFile(join(repositoryRoot, "docs", "assets", `${name}.svg`), "utf8");
 			assert.doesNotMatch(svg, /<(?:linearGradient|radialGradient|filter)\b/i, name);
@@ -69,6 +68,19 @@ describe("public OMCS documentation assets", () => {
 				`${name} uses only the reviewed monochrome palette`,
 			);
 		}
+
+		for (const name of ["omcs-benchmark-results", "omcs-benchmark-task-outcomes"]) {
+			const svg = await readFile(join(repositoryRoot, "docs", "assets", `${name}.svg`), "utf8");
+			assert.doesNotMatch(svg, /<(?:linearGradient|radialGradient|filter)\b/i, name);
+			assert.match(svg, /<svg\b[^>]*aria-labelledby="title desc"[^>]*>/i, `${name} declares its accessible labels`);
+			const colors = [...svg.matchAll(/#[0-9a-f]{6}\b/gi)].map(([color]) => color.toUpperCase());
+			assert.ok(colors.includes("#1E8CF4"), `${name} uses the reviewed OMCS accent`);
+			assert.deepEqual(
+				[...new Set(colors)].sort(),
+				[...new Set(colors)].sort().filter((color) => ["#111111", "#525252", "#A3A3A3", "#E5E5E5", "#F5F5F5", "#FFFFFF", "#1E8CF4"].includes(color)),
+				`${name} uses only the reviewed benchmark palette`,
+			);
+		}
 	});
 
 	it("rejects named, functional, shorthand, and style-based colors", () => {
@@ -79,6 +91,7 @@ describe("public OMCS documentation assets", () => {
 			'<svg fill="#FFFFFF"><path style="fill: #111111"/></svg>',
 			'<svg fill="#FFFFFF"><style>path { fill: #111111; }</style></svg>',
 		]) assert.throws(() => assertMonochromeSvg(unsafe, "fixture.svg"), /monochrome/i);
+		assert.throws(() => assertBenchmarkChartSvg('<svg fill="#FFFFFF"><rect fill="#FF0000"/></svg>', "fixture.svg"), /benchmark palette/i);
 	});
 
 	it("keeps terminal SVGs inside the reviewed Ghostty-style palette", () => {
@@ -94,6 +107,20 @@ describe("public OMCS documentation assets", () => {
 			'<?xml-stylesheet href="https://example.test/x.css"?><svg fill="#171717"></svg>',
 			'<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg fill="#171717"></svg>',
 		]) assert.throws(() => assertTerminalSvg(unsafe, "fixture.svg"), /terminal palette/i);
+	});
+
+	it("keeps benchmark charts inside an inert reviewed SVG vocabulary", () => {
+		for (const unsafe of [
+			'<svg fill="#FFFFFF" onload="alert(1)"></svg>',
+			'<svg fill="#FFFFFF"><script>alert(1)</script></svg>',
+			'<svg fill="#FFFFFF"><image href="https://example.test/pixel"/></svg>',
+			'<svg fill="#FFFFFF" xmlns:s="http://www.w3.org/2000/svg"><s:script>alert(1)</s:script></svg>',
+			'<svg fill="#FFFFFF"><animate attributeName="opacity" values="0;1"/></svg>',
+			'<svg fill="#FFFFFF"><rect filter="url(https://example.test/f.svg#x)"/></svg>',
+			'<svg fill="#FFFFFF"><rect cursor="url(https://example.test/c.cur),auto"/></svg>',
+			'<?xml-stylesheet href="https://example.test/x.css"?><svg fill="#FFFFFF"></svg>',
+			'<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><svg fill="#FFFFFF"></svg>',
+		]) assert.throws(() => assertBenchmarkChartSvg(unsafe, "fixture.svg"), /benchmark palette/i);
 	});
 
 	it("rejects malformed SVG XML instead of treating tag-shaped text as a diagram", () => {
