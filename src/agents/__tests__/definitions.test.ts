@@ -19,10 +19,10 @@ function prompt(name: string): string {
 describe('agents/definitions', () => {
 	it('keeps every native-agent prompt aligned with its bounded role contract', () => {
 		const architect = prompt('architect');
-		assert.match(
-			architect,
-			/Own request intent, architecture, routing, decomposition, parent verification, and final acceptance\./,
-		);
+		assert.match(architect, /Own request intent, architecture, routing, integration, fresh verification, and final acceptance\./);
+		assert.match(architect, /Default settled work to direct execution/i);
+		assert.match(architect, /Delegated work substitutes for your corresponding work/i);
+		assert.match(architect, /Stop when acceptance evidence is green/i);
 
 		for (const name of ['explorer', 'librarian', 'oracle']) {
 			const contents = prompt(name);
@@ -43,10 +43,9 @@ describe('agents/definitions', () => {
 		const reviewer = prompt('reviewer');
 		assert.match(reviewer, /fresh/i);
 		assert.match(reviewer, /behaviorally read-only/i);
-		assert.match(
-			reviewer,
-			/Any post-review edit invalidates the ship, fix-first, or rethink verdict and requires parent reverification followed by a fresh review\./,
-		);
+		assert.match(reviewer, /substitutes for the primary context's final review/i);
+		assert.match(reviewer, /Stop after the verdict/i);
+		assert.match(reviewer, /Any post-review edit invalidates it and requires parent reverification followed by a fresh review\./);
 	});
 
   it('returns known agents and undefined for unknown names', () => {
