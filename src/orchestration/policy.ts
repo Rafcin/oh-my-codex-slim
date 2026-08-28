@@ -19,6 +19,7 @@ export interface WorkSignals {
 	delegationValue: boolean;
 	visual: boolean;
 	needsResearch: boolean;
+	behaviorChange: boolean;
 	hasReproduction: boolean;
 	concreteSlopFinding: boolean;
 	needsRepositoryMapping?: boolean;
@@ -154,13 +155,15 @@ function chooseRoute(profile: ExecutionProfile, risk: WorkSignals, budget: Execu
 	});
 }
 
-function reconcileCapabilities(route: RouteDecision, metadata: CapabilityMetadata | undefined): {
+function reconcileCapabilities(route: RouteDecision, supportingAgents: SupportingAgent[], metadata: CapabilityMetadata | undefined): {
 	route: RouteDecision;
+	supportingAgents: SupportingAgent[];
 	evidence: CapabilityEvidence;
 } {
 	const checked = [...(metadata?.checked ?? [])];
 	const available = [...(metadata?.available ?? [])];
-	if (new Set(checked).size !== checked.length || new Set(available).size !== available.length || available.some((agent) => !checked.includes(agent))) {
+	const selected = [route.implementer, route.reviewer, ...supportingAgents].filter((agent): agent is AuxiliaryAgent => agent !== undefined);
+	if (new Set(checked).size !== checked.length || new Set(available).size !== available.length || available.some((agent) => !checked.includes(agent)) || checked.some((agent) => !selected.includes(agent))) {
 		throw new Error("OMCS capability evidence is invalid");
 	}
 
@@ -178,11 +181,26 @@ function reconcileCapabilities(route: RouteDecision, metadata: CapabilityMetadat
 			route: route.reviewer
 				? { mode: "audit", reviewer: route.reviewer, fallback }
 				: { mode: "solo", fallback },
+			supportingAgents,
 			evidence: { checked, available, fallback },
 		};
 	}
 
-	return { route, evidence: { checked, available, fallback: null } };
+	const unavailableSupport = supportingAgents.find((agent) => checked.includes(agent) && !available.includes(agent));
+	if (unavailableSupport) {
+		const fallback: RouteFallback = {
+			unavailable: unavailableSupport,
+			from: "support",
+			reason: "optional-capability-unavailable",
+		};
+		return {
+			route: { ...route, fallback },
+			supportingAgents: [],
+			evidence: { checked, available, fallback },
+		};
+	}
+
+	return { route, supportingAgents, evidence: { checked, available, fallback: null } };
 }
 
 function addSkill(skills: PolicySkill[], skill: PolicySkill): void {
@@ -197,7 +215,7 @@ function selectSkills(profile: ExecutionProfile, risk: WorkSignals, route: Route
 	if (thorough || risk.needsArchitectureAdvice || risk.blastRadius === "wide") addSkill(skills, "codebase-design");
 	if (risk.needsResearch) addSkill(skills, "research");
 	if (thorough || risk.consequence === "material" || risk.uncertainty === "material" || route.mode === "delegate" || route.mode === "full") addSkill(skills, "plan");
-	if (thorough || risk.hasReproduction) addSkill(skills, "tdd");
+	if (thorough || risk.behaviorChange || risk.hasReproduction) addSkill(skills, "tdd");
 	if (risk.concreteSlopFinding) addSkill(skills, "ai-slop-cleaner");
 	addSkill(skills, "verification");
 	if (route.mode === "audit" || route.mode === "full") addSkill(skills, "code-review");
@@ -232,7 +250,9 @@ function riskEvidence(risk: WorkSignals): RiskEvidence {
 /** Maps a resolved profile and observed work signals to visible, fail-closed execution gates. */
 export function selectExecutionPolicy(input: PolicyInput): ExecutionPolicy {
 	const budget = executionBudget(input.profile);
-	const reconciled = reconcileCapabilities(chooseRoute(input.profile, input.risk, budget), input.capabilities);
+	const initialRoute = chooseRoute(input.profile, input.risk, budget);
+	const selectedSupport = selectSupportingAgents(input.risk, initialRoute, budget);
+	const reconciled = reconcileCapabilities(initialRoute, selectedSupport, input.capabilities);
 	const route = reconciled.route;
 	const councilLanes = input.profile === "council" ? provenCouncilLanes(input.councilMetadata) : [];
 	const council: CouncilOverlay = input.profile !== "council"
@@ -252,7 +272,7 @@ export function selectExecutionPolicy(input: PolicyInput): ExecutionPolicy {
 		council,
 		skills: selectSkills(input.profile, input.risk, route),
 		risk: riskEvidence(input.risk),
-		supportingAgents: selectSupportingAgents(input.risk, route, budget),
+		supportingAgents: reconciled.supportingAgents,
 		antiSlop: {
 			enabled: input.risk.concreteSlopFinding,
 			scope: "changed-files",

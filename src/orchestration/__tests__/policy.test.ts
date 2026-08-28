@@ -16,6 +16,7 @@ const settledRisk: WorkSignals = {
 	delegationValue: false,
 	visual: false,
 	needsResearch: false,
+	behaviorChange: false,
 	hasReproduction: false,
 	concreteSlopFinding: false,
 };
@@ -94,6 +95,34 @@ describe("OMCS thin execution policy", () => {
 		});
 	});
 
+	it("checks only policy-selected auxiliaries", () => {
+		assert.throws(() => selectExecutionPolicy({
+			profile: "auto",
+			risk: settledRisk,
+			capabilities: { checked: ["omcs_fixer"], available: ["omcs_fixer"] },
+		}), /capability evidence is invalid/i);
+	});
+
+	it("reroutes an unavailable optional supporting specialist to solo without substitution", () => {
+		const policy = selectExecutionPolicy({
+			profile: "auto",
+			risk: { ...settledRisk, needsRepositoryMapping: true },
+			capabilities: { checked: ["omcs_explorer"], available: [] },
+		});
+
+		assert.deepEqual(policy.route, {
+			mode: "solo",
+			fallback: {
+				unavailable: "omcs_explorer",
+				from: "support",
+				reason: "optional-capability-unavailable",
+			},
+		});
+		assert.deepEqual(policy.supportingAgents, []);
+		assert.equal(policy.capabilities.checked.includes("omcs_librarian"), false);
+		assert.equal(policy.capabilities.checked.includes("omcs_oracle"), false);
+	});
+
 	it("fails closed when a required fresh reviewer was checked and is unavailable", () => {
 		assert.throws(() => selectExecutionPolicy({
 			profile: "auto",
@@ -167,5 +196,14 @@ describe("OMCS thin execution policy", () => {
 		assert.equal(clean.skills.includes("ai-slop-cleaner"), false);
 		assert.equal(finding.antiSlop.enabled, true);
 		assert.equal(finding.skills.includes("ai-slop-cleaner"), true);
+	});
+
+	it("activates TDD for an observable behavior change without requiring a reproduction", () => {
+		const policy = selectExecutionPolicy({
+			profile: "auto",
+			risk: { ...settledRisk, behaviorChange: true },
+		});
+
+		assert.deepEqual(policy.skills, ["tdd", "verification"]);
 	});
 });

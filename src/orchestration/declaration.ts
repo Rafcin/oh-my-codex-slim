@@ -48,8 +48,8 @@ function validRoute(route: unknown): route is RouteDecision {
 function validFallback(value: unknown): value is RouteFallback {
 	if (typeof value !== "object" || value === null) return false;
 	const candidate = value as Record<string, unknown>;
-	return (candidate.unavailable === "omcs_fixer" || candidate.unavailable === "omcs_terra_fixer" || candidate.unavailable === "omcs_designer")
-		&& (candidate.from === "delegate" || candidate.from === "full")
+	return (candidate.unavailable === "omcs_fixer" || candidate.unavailable === "omcs_terra_fixer" || candidate.unavailable === "omcs_designer" || candidate.unavailable === "omcs_explorer" || candidate.unavailable === "omcs_librarian" || candidate.unavailable === "omcs_oracle")
+		&& (candidate.from === "delegate" || candidate.from === "full" || candidate.from === "support")
 		&& candidate.reason === "optional-capability-unavailable";
 }
 

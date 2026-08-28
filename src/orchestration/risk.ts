@@ -8,8 +8,8 @@ export type Reviewer = "omcs_reviewer";
 export type AuxiliaryAgent = Implementer | Reviewer | "omcs_explorer" | "omcs_librarian" | "omcs_oracle";
 
 export interface RouteFallback {
-	unavailable: Implementer;
-	from: "delegate" | "full";
+	unavailable: Exclude<AuxiliaryAgent, Reviewer>;
+	from: "delegate" | "full" | "support";
 	reason: "optional-capability-unavailable";
 }
 
