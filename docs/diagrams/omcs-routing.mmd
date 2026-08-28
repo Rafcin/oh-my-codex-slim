@@ -1,16 +1,18 @@
 ---
-title: OMCS profile and delivery route selection
+title: OMCS thin-kernel route selection
 ---
 flowchart TD
-    A[Profile] --> B{Council explicitly requested?}
-    B -- yes --> C[Read-only council overlay]
-    B -- no --> D[Assess risk and task shape]
-    C --> D
-    D --> E[solo]
-    D --> F[delegate]
-    D --> G[audit]
-    D --> H[full]
-    E --> I[Architect acceptance]
-    F --> I
-    G --> I
-    H --> I
+    A[Profile and task evidence] --> B[Separate consequence, uncertainty, and blast radius]
+    B --> C{Independent review required?}
+    C -- no --> D{Concrete delegation value?}
+    D -- no --> E[solo — default]
+    D -- yes --> F[delegate — one auxiliary]
+    C -- yes, auto or fast --> G[audit — one reviewer]
+    C -- yes, thorough --> H{Delegation value?}
+    H -- no --> G
+    H -- yes --> I[full — implementer plus reviewer]
+    E --> J[One final verification path]
+    F --> J
+    G --> J
+    I --> J
+    J --> K[Stop after green]

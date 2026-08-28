@@ -4,6 +4,22 @@ OMCS includes a paired benchmark harness for answering one practical question: d
 
 The harness does not run a model unless both `--execute` and `--approve-model-usage` are present. A user must still explicitly approve that billed matrix before anyone invokes it.
 
+## Current tuning state
+
+The August 27 pilot is frozen development evidence for the original
+ceremony-heavy `auto` policy. It is not a held-out proof set for the checked-in
+thin-kernel redesign. That redesign defaults `auto` and `fast` to `solo`, uses
+at most one auxiliary, separates consequence from uncertainty, treats an
+auxiliary as a substitute for primary-context work, activates cleanup only for
+a concrete named finding, and makes green acceptance evidence a binding stop
+condition.
+
+The redesigned policy is not yet benchmarked. Do not relabel the existing chart
+or results as post-redesign performance. A new comparative result requires a
+separately approved paired run with frozen tasks, randomized order, matched
+sandboxes, repeated trials, hidden grading, transcript activation audit, and no
+grader or fixture tuning after outcomes are visible.
+
 ## What is compared
 
 Every task and repetition has two arms:

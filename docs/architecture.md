@@ -20,9 +20,9 @@ The eight OMCS agents are native Codex definitions. OpenCodex owns primary exter
 
 ## Orchestration boundary
 
-An OMCS run starts with an auditable declaration of profile, route, risk, skills, agents, and approval posture. The architect owns intent, route selection, packet contracts, parent verification, and acceptance. Delivery is one of `solo`, `delegate`, `audit`, or `full`; council is explicit-only, read-only advice before a normal route.
+An OMCS run starts with an auditable declaration of profile, route, independent consequence and uncertainty signals, skills, agents, budget, and approval posture. `auto` and `fast` default to `solo` and use at most one auxiliary. The architect owns intent, route selection, packet contracts, integration, fresh verification, acceptance, and the stop decision. Delivery is one of `solo`, `delegate`, `audit`, or `full`; council is explicit-only, read-only advice before a normal route.
 
-The adaptive sequence is context and research, material design decision, plan, TDD implementation, changed-file anti-slop/simplification, fresh verification, and risk-gated fresh review. It is conditional: a settled one-file fix stays small, while a persistent or public-interface change earns more gates. [Execution modes](execution-modes.md) and [agents and skills](agents-and-skills.md) define these contracts.
+An auxiliary substitutes for corresponding primary-context work. Capability preflight happens only after one is selected; optional unavailability can reroute narrow work to `solo`, while unavailable required review fails closed. Focused skills load only from observed triggers, anti-slop requires a concrete named changed-file finding, and one final verification path leads to a binding stop condition. A settled one-file fix therefore stays direct while material consequence combined with uncertainty or wide blast radius earns independent review. [Execution modes](execution-modes.md) and [agents and skills](agents-and-skills.md) define these contracts.
 
 ## MCP safety boundary
 

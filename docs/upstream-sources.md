@@ -52,3 +52,14 @@ Each entry records inspected upstream material used by the tuned OMCS catalog.
 - Package author: YeonGyu-Kim (pinned package.json)
 - Copyright/licensor: no separately named holder published in inspected package metadata
 - Repository owner: `code-yeongyu`
+
+## Thin-kernel synthesis boundary
+
+The 2026-08-27 solo-first routing redesign is original OMCS integration work.
+It applies progressive disclosure and feedback-loop ideas from Matt Pocock,
+solo-first ownership and fresh-review discipline from Daniel McAteer, specialist
+lane presentation from Alvin (`alvinunreal`), Codex-native prompt guidance from
+Yeachan Heo, and behavioral research only from YeonGyu-Kim's Oh My OpenAgent.
+Exact pinned revisions and licenses remain above and in
+`THIRD_PARTY_NOTICES.md`. No Oh My OpenAgent source code or prompt text is
+copied.

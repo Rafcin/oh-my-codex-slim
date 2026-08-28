@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 520" role="img" aria-labelledby="title desc">
-  <title id="title">OMCS adaptive delivery pipeline</title>
-  <desc id="desc">A monochrome flow from intent through planning, implementation, verification, review, and acceptance.</desc>
+  <title id="title">OMCS thin adaptive delivery pipeline</title>
+  <desc id="desc">A monochrome flow from intent through solo-first delivery, triggered focused work, one final verification path, optional independent review, and a binding stop.</desc>
   <rect width="1440" height="520" fill="#FFFFFF"/>
-  <text x="72" y="72" font-family="ui-sans-serif, system-ui, sans-serif" font-size="34" font-weight="700" fill="#111111">From request to verified result</text>
-  <text x="72" y="108" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" fill="#525252">OMCS adds structure only when the work earns it.</text>
+  <text x="72" y="72" font-family="ui-sans-serif, system-ui, sans-serif" font-size="34" font-weight="700" fill="#111111">Spend process only when it changes the outcome</text>
+  <text x="72" y="108" font-family="ui-sans-serif, system-ui, sans-serif" font-size="18" fill="#525252">Direct execution is the baseline; skills and agents are progressively disclosed.</text>
   <line x1="115" y1="253" x2="1320" y2="253" stroke="#A3A3A3" stroke-width="2"/>
   <g font-family="ui-sans-serif, system-ui, sans-serif" text-anchor="middle">
-    <g transform="translate(72 186)"><rect width="210" height="134" rx="12" fill="#FFFFFF" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Understand</text><text x="105" y="82" font-size="15" fill="#525252">intent · risk · context</text></g>
-    <g transform="translate(342 186)"><rect width="210" height="134" rx="12" fill="#F5F5F5" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Design</text><text x="105" y="82" font-size="15" fill="#525252">research · decisions · plan</text></g>
-    <g transform="translate(612 186)"><rect width="210" height="134" rx="12" fill="#111111" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#FFFFFF">Implement</text><text x="105" y="82" font-size="15" fill="#E5E5E5">TDD · focused delivery</text></g>
-    <g transform="translate(882 186)"><rect width="210" height="134" rx="12" fill="#F5F5F5" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Verify</text><text x="105" y="82" font-size="15" fill="#525252">fresh tests · anti-slop</text></g>
-    <g transform="translate(1152 186)"><rect width="210" height="134" rx="12" fill="#FFFFFF" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Accept</text><text x="105" y="82" font-size="15" fill="#525252">review · evidence</text></g>
+    <g transform="translate(72 186)"><rect width="210" height="134" rx="12" fill="#FFFFFF" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Intent</text><text x="105" y="82" font-size="15" fill="#525252">task · scope · oracle</text></g>
+    <g transform="translate(342 186)"><rect width="210" height="134" rx="12" fill="#F5F5F5" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Thin route</text><text x="105" y="82" font-size="15" fill="#525252">solo by default</text></g>
+    <g transform="translate(612 186)"><rect width="210" height="134" rx="12" fill="#111111" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#FFFFFF">Focused work</text><text x="105" y="82" font-size="15" fill="#E5E5E5">triggered skill or agent</text></g>
+    <g transform="translate(882 186)"><rect width="210" height="134" rx="12" fill="#F5F5F5" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Verify once</text><text x="105" y="82" font-size="15" fill="#525252">acceptance evidence</text></g>
+    <g transform="translate(1152 186)"><rect width="210" height="134" rx="12" fill="#FFFFFF" stroke="#111111" stroke-width="2"/><text x="105" y="52" font-size="21" font-weight="700" fill="#111111">Stop</text><text x="105" y="82" font-size="15" fill="#525252">after green</text></g>
   </g>
   <g fill="#111111"><path d="M322 253 l-14 -8 v16 z"/><path d="M592 253 l-14 -8 v16 z"/><path d="M862 253 l-14 -8 v16 z"/><path d="M1132 253 l-14 -8 v16 z"/></g>
   <line x1="72" y1="405" x2="1368" y2="405" stroke="#E5E5E5" stroke-width="2"/>
-  <text x="72" y="448" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700" fill="#111111">Adaptive routing</text>
-  <text x="230" y="448" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#525252">solo for bounded work · delegation for parallel context · fresh review for material risk</text>
+  <text x="72" y="448" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" font-weight="700" fill="#111111">Conditional branches</text>
+  <text x="240" y="448" font-family="ui-sans-serif, system-ui, sans-serif" font-size="16" fill="#525252">no named trigger skips focused extras · required review occurs after verification · no post-green edit without a finding</text>
 </svg>

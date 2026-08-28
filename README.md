@@ -21,14 +21,15 @@ Before work, OMCS makes the decision visible. The declaration is not a promise o
 ```text
 OMCS ROUTE
 profile: auto
-mode: full
-risk: new subsystem with public interfaces and persistent configuration
-skills: context, codebase-design, plan, tdd, verification, code-review
-agents: architect → explorer + librarian → terra-fixer → reviewer
+mode: solo
+risk: low consequence; low uncertainty; narrow blast radius
+skills: tdd, verification
+agents: architect
+budget: 1 auxiliary; one final verification path; stop after green
 approval: material-decisions
 ```
 
-The route can escalate when evidence increases risk. It never silently downgrades. See [execution modes](docs/execution-modes.md) and the route map below.
+`auto` and `fast` default to `solo`. The route escalates only when evidence increases consequence, uncertainty, blast radius, or the value of a specialist. See [execution modes](docs/execution-modes.md) and the route map below.
 
 ![OMCS route selection diagram](docs/assets/omcs-routing.svg)
 
@@ -56,9 +57,9 @@ Project policy never includes credentials, provider settings, personal account c
 
 | Profile | Meaning |
 | --- | --- |
-| `auto` | Default: adapt clarification, design, delegation, cleanup, and review to the observed risk. |
-| `fast` | Prefer direct work or one efficient implementer while retaining required safety checks. |
-| `thorough` | Raise design, TDD, anti-slop, documentation, verification, and fresh-review gates. |
+| `auto` | Default to `solo`; spend at most one auxiliary only for concrete delegation value or required review. |
+| `fast` | Same solo-first budget with fewer optional gates; never weakens required safety evidence. |
+| `thorough` | Always add fresh review; use an implementer too only when a bounded packet has real value. |
 | `council` | Explicit-only, read-only consultation before a normal delivery route; fails closed without proven diversity. |
 
 | Route | Delivery owner |
@@ -72,13 +73,13 @@ The council is an advisory overlay, not a fifth route. [Execution modes](docs/ex
 
 ## The team and skill pipeline
 
-The architect owns intent, route selection, decomposition, parent verification, and acceptance. Explorer, Librarian, and Oracle compress read-only context. Fixers and Designer deliver bounded work. The Reviewer is fresh and read-only; any post-review edit requires fresh verification and a new review when the route requires one.
+The architect owns intent, route selection, integration, fresh verification, and acceptance. An auxiliary substitutes for the corresponding primary-context work; the architect does not repeat the same mapping, research, implementation, or review. `auto` uses at most one auxiliary. The Reviewer is fresh and read-only; any post-review edit requires fresh verification and a new review when the route requires one.
 
-The sixteen skills compose the lifecycle: `omcs`, `context`, `codebase-design`, `research`, `plan`, `tdd`, `implement`, `ai-slop-cleaner`, `simplify`, `verification`, `code-review`, `codemap`, `diagnose`, `deepwork`, `deep-interview`, and the `omcs-orchestrate` compatibility alias. Details: [agents and skills](docs/agents-and-skills.md).
+The sixteen skills are progressively disclosed, not a mandatory lifecycle: `omcs`, `context`, `codebase-design`, `research`, `plan`, `tdd`, `implement`, `ai-slop-cleaner`, `simplify`, `verification`, `code-review`, `codemap`, `diagnose`, `deepwork`, `deep-interview`, and the `omcs-orchestrate` compatibility alias. Details: [agents and skills](docs/agents-and-skills.md).
 
 ```text
-intent → config / route → context / grill → explore / research → design / material decision
-  → plan → TDD implementation → anti-slop / simplify → verification → risk-gated review → acceptance
+intent → thin route → direct work by default → triggered specialist or skill when earned
+  → one final verification path → risk-gated review when required → stop after green
 ```
 
 ## Install and operate safely
@@ -144,7 +145,7 @@ OMCS's median wall time was 129.0 seconds versus 64.9 seconds for Plain Codex: *
 | Execution documentation | 1/3 | 1/3 | unstable for both; one improvement and one regression |
 | Retry client | 3/3 | 3/3 | quality tie; OMCS 2.00× slower |
 
-The current tuning conclusion is blunt: `auto` over-orchestrates settled, bounded work. The next refinement should default narrow tasks toward a fast/solo path, impose a hard orchestration budget, and reserve multi-agent review for observed risk. See the [full mathematical report](docs/benchmark-results/2026-08-27-prompt-refinement-pilot.md) and [sanitized pair-level data](docs/benchmark-results/prompt-refinement-pilot-2026-08-27.csv).
+The pilot identified the concrete failure mode: 16/18 treatment runs selected `full`, all 18 attempted an unavailable pre-route CLI configuration command, and OMCS averaged 8.50 shell commands versus 3.39 for control. The checked-in thin-kernel redesign now defaults `auto` to `solo`, caps it at one auxiliary, separates consequence from uncertainty, removes mandatory configuration probing, and makes green acceptance evidence a binding stop condition. Its performance is **not yet benchmarked**; the published chart above still describes the frozen pre-redesign matrix. See the [full mathematical report](docs/benchmark-results/2026-08-27-prompt-refinement-pilot.md) and [sanitized pair-level data](docs/benchmark-results/prompt-refinement-pilot-2026-08-27.csv).
 
 ### What the benchmark is designed to reveal
 
@@ -155,7 +156,7 @@ The current tuning conclusion is blunt: `auto` over-orchestrates settled, bounde
 | Tiny, obvious edits | OMCS may struggle to justify orchestration overhead; `fast` or `solo` should be more proportionate. | `auto` adds latency or tokens without improving verified success. |
 | Ambiguous or poorly specified tasks | Fail-closed clarification should improve safety but may reduce completion speed. | More abandoned work without fewer unsafe or incorrect outcomes. |
 
-The valid pilot does not confirm those hypotheses. It shows parity at higher cost on five task families and a regression on diagnosis; larger held-out suites are needed before claiming a category where OMCS shines.
+The valid pilot does not confirm those hypotheses. It shows parity at higher cost on five task families and a regression on diagnosis. The redesigned prompt and policy need a separately approved paired rerun before any gain is claimed; the original six-task pilot is development evidence now, not a held-out proof set.
 
 ### Code quality target
 

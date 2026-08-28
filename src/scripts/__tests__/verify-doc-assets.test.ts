@@ -17,6 +17,23 @@ describe("public OMCS documentation assets", () => {
 		assert.deepEqual(report.terminals, ["omcs-configure-project.svg", "omcs-route-declaration.svg", "omcs-verification-receipt.svg"]);
 	});
 
+	it("documents the benchmark-driven thin-kernel contract", async () => {
+		const files = ["README.md", "docs/execution-modes.md", "docs/architecture.md", "docs/agents-and-skills.md", "docs/examples.md"];
+		const publicContract = (await Promise.all(files.map((path) => readFile(join(repositoryRoot, path), "utf8")))).join("\n");
+		const routeDiagram = await readFile(join(repositoryRoot, "docs", "diagrams", "omcs-routing.mmd"), "utf8");
+
+		assert.match(publicContract, /`auto` and `fast` default to `solo`/i);
+		assert.match(publicContract, /consequence.*uncertainty/i);
+		assert.match(publicContract, /at most one auxiliary/i);
+		assert.match(publicContract, /substitutes for.*primary-context work/i);
+		assert.match(publicContract, /concrete named finding/i);
+		assert.match(publicContract, /binding stop condition/i);
+		assert.match(publicContract, /not yet.*benchmark|benchmark.*not yet/i);
+		assert.match(routeDiagram, /solo.*default/is);
+		assert.match(routeDiagram, /one auxiliary/is);
+		assert.match(routeDiagram, /consequence.*uncertainty/is);
+	});
+
 	it("rejects a public documentation tree containing an unsafe sample value", async () => {
 		const fixture = await mkdtemp(join(tmpdir(), "omcs-doc-assets-"));
 		try {
@@ -152,11 +169,11 @@ describe("public OMCS documentation assets", () => {
 				],
 			},
 			"omcs-route-declaration.svg": {
-				sha256: "02c9849833ccb28e67fc43e99f985c39ec44f3b87446697ecc7e47224e32e79d",
+				sha256: "1f66bc176c33f9f96d4983ae176c2d26fea39d3383fec0905ca4f59546705df2",
 				visibleText: [
-					"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
-					"risk: wide blast radius; review required", "skills: context · codebase-design · plan · tdd · ai-slop-cleaner · verification · code-review",
-					"agents: architect → explorer + librarian → terra-fixer → reviewer", "council: disabled", "approval: material-decisions", "understanding complete", "design ready for approval", "implementation pending",
+					"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: solo",
+					"risk: low consequence; low uncertainty; narrow blast radius", "skills: tdd · verification", "agents: architect",
+					"budget: 1 auxiliary · one final verification · stop after green", "council: disabled", "approval: material-decisions", "routing complete", "implementation direct", "stop after green",
 				],
 			},
 			"omcs-verification-receipt.svg": {

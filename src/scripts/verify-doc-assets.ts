@@ -84,11 +84,11 @@ export const REVIEWED_TERMINAL_FIXTURES: TerminalReviewManifest = {
 		],
 	},
 	"omcs-route-declaration.svg": {
-		sha256: "02c9849833ccb28e67fc43e99f985c39ec44f3b87446697ecc7e47224e32e79d",
+		sha256: "1f66bc176c33f9f96d4983ae176c2d26fea39d3383fec0905ca4f59546705df2",
 		visibleText: [
-			"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: full",
-			"risk: wide blast radius; review required", "skills: context · codebase-design · plan · tdd · ai-slop-cleaner · verification · code-review",
-			"agents: architect → explorer + librarian → terra-fixer → reviewer", "council: disabled", "approval: material-decisions", "understanding complete", "design ready for approval", "implementation pending",
+			"acme-widget — Codex CLI", "example@acme-widget", "~/work/acme-widget", "$", "Use OMCS to solve this issue", "OMCS ROUTE", "profile: auto", "mode: solo",
+			"risk: low consequence; low uncertainty; narrow blast radius", "skills: tdd · verification", "agents: architect",
+			"budget: 1 auxiliary · one final verification · stop after green", "council: disabled", "approval: material-decisions", "routing complete", "implementation direct", "stop after green",
 		],
 	},
 	"omcs-verification-receipt.svg": {

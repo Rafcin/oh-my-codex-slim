@@ -1,53 +1,96 @@
 # OMCS execution modes
 
-OMCS is a workflow, not a fixed multi-agent tax. Start with `auto` and let the observed task earn more process.
+OMCS is a thin workflow, not a fixed multi-agent tax. `auto` and `fast` default
+to `solo`; a task must earn an auxiliary through concrete critical-path value or
+required independent review.
+
+## Independent routing signals
+
+OMCS separates consequence from uncertainty:
+
+- **Consequence** is material for security, credentials, irreversible or
+  external state, persistent data, architecture, dependencies, or compatibility
+  with meaningful downstream impact. A narrow public or user-visible surface
+  is not material by default.
+- **Uncertainty** is material when requirements, root cause, interfaces, or the
+  acceptance oracle remain weak. Otherwise it is low.
+- **Blast radius** describes the actual changed surfaces and downstream
+  consumers: narrow, moderate, or wide.
+- **Delegation value** exists only when a complete bounded packet removes a
+  real bottleneck or uses a needed specialist capability. Being technically
+  delegable is not enough.
+
+In `auto`, independent review is required when material consequence combines
+with material uncertainty or wide blast radius. This avoids equating every
+important-looking label with a mandatory multi-agent route.
 
 ## Profiles
 
-`auto` is the normal default. It routes a small, settled local fix narrowly and raises gates for public interfaces, persistent data, broad changes, uncertainty, or generated-code risk.
+| Profile | Auxiliary budget | Review contract |
+| --- | ---: | --- |
+| `auto` | At most one auxiliary | Risk-gated by consequence plus uncertainty or width. |
+| `fast` | At most one auxiliary | Same safety gate; fewer optional disciplines. |
+| `thorough` | One implementer plus one reviewer | Fresh review always; implementation stays direct unless delegation has value. |
+| `council` | Explicit read-only advisers, then the thorough delivery budget | Two distinct advisory lanes must be proven; fresh delivery review remains required. |
 
-`fast` prefers the architect working directly or one bounded implementer. It still requires the safety and correctness checks that apply to the change.
-
-`thorough` raises design, TDD, changed-file anti-slop, documentation, fresh verification, and fresh-review gates.
-
-`council` is explicit-only. It asks distinct, proven model lanes for read-only advice before selecting an ordinary delivery route. It does not activate from any other profile, does not implement, and fails closed if diversity cannot be proven without inspecting secrets.
+Council is an advisory overlay, not a delivery route. It never activates from
+another profile and does not implement.
 
 ## Delivery routes
 
 | Route | When it fits | Delivery contract |
 | --- | --- | --- |
-| `solo` | Settled, small work with low blast radius | Architect owns implementation, verification, and self-review. |
-| `delegate` | A complete bounded packet can be handed to one implementer | Architect owns the acceptance evidence. |
-| `audit` | A fresh opinion is justified, but delegation is not | Architect implements; fresh reviewer audits the actual change. |
-| `full` | Higher-risk, multi-surface, or public-interface work | Implementer delivers, architect verifies, fresh reviewer audits. |
+| `solo` | Default for settled work | Architect implements, verifies, and stops after acceptance evidence is green. |
+| `delegate` | A settled bounded packet has concrete delegation value | One implementer substitutes for architect implementation; architect integrates and verifies. |
+| `audit` | Independent review is required within a one-auxiliary budget | Architect implements and verifies; fresh Reviewer audits. |
+| `full` | Thorough work benefits from both implementation delegation and review | One implementer delivers; architect verifies; fresh Reviewer audits. |
 
-Explorer, Librarian, and Oracle are supporting read-only lanes. Their use does not turn a route into a different route, and they never become acceptance owners.
+Explorer, Librarian, and Oracle are optional read-only specialists. In `auto`, a
+supporting specialist consumes the one auxiliary budget, so it is never stacked
+with an implementer or reviewer.
+
+## Capability fallback
+
+OMCS chooses a candidate first, then preflights only that selected auxiliary.
+It does not enumerate every role or try a chain of replacements.
+
+- An unavailable optional implementer or supporting specialist visibly
+  reroutes narrow work to `solo`.
+- A missing required Reviewer fails closed; the architect cannot silently
+  self-certify an `audit` or `full` result.
+- Council fails closed without two proven distinct advisory lanes.
+- Capability evidence contains role availability only and never provider
+  credentials.
 
 ## Visible route declaration
-
-OMCS emits this concise declaration after resolving configuration and before task tools:
 
 ```text
 OMCS ROUTE
 profile: auto
-mode: full
-risk: new subsystem with public interfaces and persistent configuration
-skills: context, codebase-design, plan, tdd, verification, code-review
-agents: architect → explorer + librarian → terra-fixer → reviewer
+mode: solo
+risk: low consequence; low uncertainty; narrow blast radius
+skills: tdd, verification
+agents: architect
+budget: 1 auxiliary; one final verification path; stop after green
 approval: material-decisions
 ```
 
-The declaration can escalate with new evidence. A route cannot silently become cheaper. A missing role, conflicting model/effort contract, unavailable fresh reviewer, unsafe write scope, stale verification, or unresolved material decision stops the run rather than substituting a hidden behavior.
+A route can escalate when new evidence changes consequence, uncertainty, blast
+radius, or specialist value. Optional-capability fallback is the one supported
+visible simplification.
 
-## Adaptive gates
+## Binding execution budget
 
-The usual lifecycle is:
+An auxiliary substitutes for the corresponding primary-context work. The
+architect inspects its evidence at the integration boundary but does not repeat
+the same mapping, research, implementation, or review.
 
-```text
-intent → config / route → context / grill → explore / research → design / material decision
-  → plan → TDD implementation → anti-slop / simplify → verification → risk-gated review → acceptance
-```
+Every run uses one final verification path proportionate to the acceptance
+claim. A command repeats only after relevant inputs changed or prior evidence
+was incomplete. Anti-slop cleanup runs only for a concrete named finding in
+changed files. Acceptance evidence is a binding stop condition: once required
+behavior, tests, and review are green, OMCS stops. A named post-green finding
+may justify one correction, which invalidates affected verification and review.
 
-A one-file regression fix might go from route declaration to TDD and verification. A new subsystem normally uses the full sequence. Anti-slop only inspects accumulated changed files and may edit only when it removes a concrete smell; every edit requires affected checks to run again. A reviewer verdict is invalid after an edit, so the architect re-verifies and obtains a fresh review when required.
-
-See [agents and skills](agents-and-skills.md), [configuration](configuration.md), and [examples](examples.md).
+See [agents and skills](agents-and-skills.md), [configuration](configuration.md),
+and [examples](examples.md).

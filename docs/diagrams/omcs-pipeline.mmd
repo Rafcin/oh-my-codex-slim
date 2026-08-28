@@ -1,14 +1,14 @@
 ---
-title: OMCS adaptive delivery pipeline
+title: OMCS thin adaptive delivery pipeline
 ---
 flowchart LR
-    A[Intent] --> B[Config and route]
-    B --> C[Context and grill]
-    C --> D[Explore and research]
-    D --> E[Design and material decision]
-    E --> F[Plan]
-    F --> G[TDD implementation]
-    G --> H[Anti-slop and simplify]
-    H --> I[Fresh verification]
-    I --> J[Risk-gated review]
-    J --> K[Evidence-backed acceptance]
+    A[Intent] --> B[Thin route]
+    B --> C[Direct work by default]
+    C --> D{Named trigger?}
+    D -- skill or auxiliary earned --> E[Focused work]
+    D -- no --> F[Final verification]
+    E --> F
+    F --> G{Fresh review required?}
+    G -- yes --> H[Independent review]
+    G -- no --> I[Stop after green]
+    H --> I

@@ -1,47 +1,71 @@
 # OMCS agents and skills
 
-OMCS keeps the team small and the accountability clear. The architect is the primary task: worker reports help, but only inspected change and fresh verification satisfy acceptance.
+OMCS keeps accountability in the primary task. An auxiliary is useful only when
+it replaces work the primary context would otherwise perform or provides
+required independent scrutiny.
 
 ## Native roles
 
 | Role | Default lane | Responsibility |
 | --- | --- | --- |
-| `omcs_architect` | Sol / High | Intent, architecture, routing, decomposition, parent verification, and acceptance. |
-| `omcs_explorer` | Luna / Low | Fast read-only repository and symbol map. |
+| `omcs_architect` | Sol / High | Intent, routing, architecture, integration, fresh verification, acceptance, and the stop decision. |
+| `omcs_explorer` | Luna / Low | Smallest relevant read-only repository and symbol map. |
 | `omcs_librarian` | Luna / Medium | Read-only primary-source and dependency research. |
 | `omcs_oracle` | Sol / High | Read-only difficult diagnosis and architecture advice. |
 | `omcs_fixer` | Luna / Max | Routine, fully specified implementation. |
-| `omcs_terra_fixer` | Terra / High | Judgment-heavy or wider-blast-radius implementation. |
-| `omcs_designer` | Terra / High | User-facing design, implementation, and visual proof. |
+| `omcs_terra_fixer` | Terra / High | Judgment-heavy or wider-blast implementation. |
+| `omcs_designer` | Terra / High | Bounded user-facing design, implementation, and visual proof. |
 | `omcs_reviewer` | Sol / High | Fresh read-only specification and quality review. |
 
-Two write-capable agents never own overlapping files. Default parallelism is two, and configuration or available slots may reduce it. Every implementation packet states an observable objective, exact file ownership, interfaces and compatibility, constraints and exclusions, verification commands, and a structured return contract. It also warns that the user or another lane may be editing concurrently and forbids reverting unrelated work.
+`auto` and `fast` use at most one auxiliary. `thorough` may use one implementer
+plus one reviewer. Two writers never receive overlapping files. Every packet
+states objective, exact ownership, interfaces, exclusions, required evidence,
+and concurrent-work preservation.
 
-## Skill catalog
+The packet substitutes for primary-context work. The architect does not remap
+the same repository, redo the same research, or reimplement the same scope. It
+inspects the actual result and fresh acceptance evidence before completion.
 
-| Skill | OMCS use |
+## Progressive skill catalog
+
+Skills are loaded by a named trigger, not as a universal pipeline:
+
+| Trigger | Skill or role |
 | --- | --- |
-| `omcs` | Primary entrypoint and risk-gated route composition. |
-| `context` | Resolve material ambiguity and project language with one focused question at a time. |
-| `codebase-design` | Choose interfaces and seams; favor deep modules and public-interface tests. |
-| `research` | Use current primary sources and separate evidence from inference. |
-| `plan` | Specify files, interfaces, tests, and ownership for multi-step or risky work. |
-| `tdd` | Use red-green vertical slices at agreed seams. |
-| `implement` | Execute an approved plan through the selected route. |
-| `ai-slop-cleaner` | Inspect changed files for concrete generated noise, duplication, dead paths, or speculative abstraction. |
-| `simplify` | Reduce correct changed code without changing behavior. |
-| `verification` | Produce fresh evidence for acceptance criteria. |
-| `code-review` | Run fresh specification and quality review when required. |
-| `codemap` | Build or refresh bounded repository context. |
-| `diagnose` | Investigate a reproducible defect before editing. |
-| `deepwork` | Execute settled work with ownership and verification discipline. |
-| `deep-interview` | Clarify an underspecified problem. |
-| `omcs-orchestrate` | Compatibility alias that directs to `omcs`; it does not duplicate the workflow. |
+| Material ambiguity | `context` or `deep-interview` |
+| Repository-mapping bottleneck | `codemap` or Explorer |
+| Current external behavior | `research` or Librarian |
+| Difficult reproducible defect | `diagnose` or Oracle |
+| Material interface or architecture decision | `codebase-design` |
+| Multi-step, delegated, persistent, or risky work | `plan` |
+| Observable behavior change or regression | `tdd` |
+| Bounded approved implementation | `implement` or `deepwork` |
+| Concrete named changed-file smell | `ai-slop-cleaner` |
+| Justified behavior-preserving reduction | `simplify` |
+| Final acceptance proof | `verification` |
+| Route requires independent review | `code-review` |
 
-Focused skills remain available directly, but a normal run needs only “use OMCS.” OMCS selects the gates rather than asking users to assemble a ceremony.
+`omcs` is the primary entrypoint. `omcs-orchestrate` remains a compatibility
+alias and does not duplicate the workflow.
 
-## Fresh review
+## Finding-triggered cleanup
 
-The reviewer returns `ship`, `fix-first`, or `rethink` after reading the accumulated change against the approved design and repository standards. The reviewer is a fresh, read-only lane. Any correction invalidates the verdict: the architect inspects the correction, reruns relevant verification, and obtains a new fresh review for an `audit` or `full` route.
+Anti-slop is not a separate no-op phase. It runs only when a concrete named
+finding identifies dead paths, duplication, pass-through abstraction, masking
+fallbacks, misleading comments, or implementation-coupled tests inside the
+accumulated changed-file scope. No finding means no cleanup edit. Any edit
+invalidates affected verification and review.
 
-Read [execution modes](execution-modes.md) for route choice and [examples](examples.md) for concrete flows.
+## Fresh review and stop
+
+The Reviewer returns `ship`, `fix-first`, or `rethink` after reading the actual
+change against requirements and repository standards. It does not edit. A
+correction invalidates the verdict and requires fresh verification plus another
+review when the route requires one.
+
+Once the behavior, tests, and required review are green, acceptance evidence is
+a binding stop condition. OMCS makes no post-green edit without a named
+unresolved finding.
+
+Read [execution modes](execution-modes.md) for route choice and
+[examples](examples.md) for concrete flows.
