@@ -5,50 +5,117 @@ description: Use when a substantial engineering task needs OMCS risk-gated orche
 
 # OMCS
 
-OMCS owns one composed, evidence-led delivery run. It routes focused skills and native agents; it does not turn a review into approval or an external boundary into an implied write.
+OMCS is a thin routing kernel for one evidence-led delivery run. The primary
+context owns intent, routing, integration, verification, and acceptance.
+Orchestration must remove a concrete bottleneck or reduce a material risk.
 
 ## Entry conditions
 
-Before the route declaration, run `omcs config show --effective --json` in the task working directory. This read-only command is the only pre-route task-tool exception. Bind its returned profile and source identity to this run. A session override exists only in current-request/in-memory context: overlay it after the command only when the user explicitly names `auto`, `fast`, `thorough`, or `council`; never claim it persisted or call `configure --scope session` to persist it. Natural-language urgency such as “move fast” is not a `fast` override.
+Use an effective profile already supplied by the runtime or current request.
+Otherwise apply the built-in `auto` defaults in memory. Only an explicit user
+choice selects `fast`, `thorough`, or `council`; urgency language is not a
+profile override. Do not require a CLI configuration command to begin work.
 
-Classify the policy inputs before routing:
+Classify only observable signals:
 
-- `settled` is true only when requirements, owned write scope, interfaces, and acceptance oracle are known. `delegable` is true only when one isolated packet can name those items without ownership conflict.
-- Blast radius is `narrow` for one bounded internal surface, `moderate` for multiple internal surfaces or a persistent local contract, and `wide` for public compatibility, security/credential ownership, dependencies/architecture, irreversible state, or external state.
-- `reviewRequired` is true for user-visible behavior, public APIs/compatibility, security/credentials, dependencies/architecture, or persistent, irreversible, or external state. Set `visual`, `needsResearch`, `hasReproduction`, `generatedCodeRisk`, `needsRepositoryMapping`, `needsDifficultDiagnosis`, and `needsArchitectureAdvice` only from direct task evidence.
+- `settled` means requirements, owned scope, interfaces, and acceptance oracle
+  are sufficient for bounded execution.
+- Consequence is separate from uncertainty. Consequence is `material` for
+  security, credentials, irreversible or external state, persistent data,
+  dependencies, architecture, or compatibility with meaningful downstream
+  impact. A narrow public or user-visible surface is not material by default.
+- Uncertainty is `material` when requirements, root cause, interfaces, or
+  acceptance evidence are weak. Otherwise it is `low`.
+- Blast radius is `narrow`, `moderate`, or `wide` from the actual changed
+  surfaces and downstream consumers.
+- `delegationValue` is true only when a complete bounded packet removes a real
+  critical-path bottleneck or needs a specialist capability. Being technically
+  delegable is not enough.
 
-Apply this kernel exactly:
+Apply the smallest sufficient route:
 
-- Set `review` true when the profile is `thorough` or `council`, or `reviewRequired` is true.
-- If not settled or not delegable, choose `audit` plus `omcs_reviewer` when `review` is true; otherwise choose `solo`.
-- Otherwise choose the implementer in this precedence: visual → `omcs_designer`; non-visual `wide` → `omcs_terra_fixer`; all other work → `omcs_fixer`. Choose `full` plus `omcs_reviewer` when `review` is true; otherwise choose `delegate`.
-- Skills: add `context` for thorough/council or unsettled; `codebase-design` and `plan` for thorough/council, unsettled, or non-narrow blast; `research` only for `needsResearch`; `tdd` for thorough/council, unsettled, or `hasReproduction`; `ai-slop-cleaner` for thorough/council, audit/full, or `generatedCodeRisk`; `verification` always; `code-review` for thorough/council or audit/full.
-- Always declare `omcs_architect`; add `omcs_explorer` for `needsRepositoryMapping`, `omcs_librarian` for `needsResearch`, and `omcs_oracle` for `needsDifficultDiagnosis` or `needsArchitectureAdvice`. Add exactly the implementer/reviewer selected above.
+- `auto` and `fast` default to `solo`.
+- Require fresh review in `auto` or `fast` only when material consequence
+  combines with material uncertainty or wide blast radius.
+- A one-auxiliary review route is `audit`: the primary implements and a fresh
+  `omcs_reviewer` audits.
+- Select `delegate` only for settled, low-uncertainty work with concrete
+  delegation value. Choose visual work → `omcs_designer`, wide non-visual work
+  → `omcs_terra_fixer`, otherwise → `omcs_fixer`.
+- `thorough` and `council` always retain fresh review. They use `full` only when
+  the same delegation-value test passes; otherwise they use `audit`.
+- `auto` and `fast` use at most one auxiliary. `thorough` may use one
+  implementer plus one reviewer. Council advisers are explicit, read-only, and
+  do not implement.
 
-Inspect the task, ownership, and risk, then declare before any other task tool:
+After selecting an auxiliary candidate, preflight only the selected auxiliary.
+If an optional implementer or supporting specialist is unavailable, reroute
+narrow work visibly to `solo` and do not try another lane. If required fresh
+review is unavailable, fail closed with the missing capability. Council also
+fails closed unless two distinct advisory lanes are proven from non-secret
+metadata.
+
+Declare the result before mutation or delegation; a minimal read-only
+inspection needed to classify the task is allowed:
 
 ```text
 OMCS ROUTE
 profile: auto | fast | thorough | council
 mode: solo | delegate | audit | full
-risk: <task-specific rationale>
-skills: <selected skills>
-agents: <architect and selected agents>
-approval: <policy>
+risk: <consequence; uncertainty; blast radius>
+skills: <triggered skills>
+agents: <primary and selected auxiliaries>
+budget: <auxiliary limit; one final verification path; stop after green>
+approval: material-decisions
 ```
-
-`council` is explicit-only and advisory. It requires at least two proven distinct native lanes or fails closed without substituting hidden diversity. `auto`, `fast`, and `thorough` never activate council. An observed risk may escalate a route; it never silently downgrades it.
 
 ## Scope limit
 
-Pause for a material decision: user-visible scope, persistent contract, public compatibility, security or credential ownership, architecture, dependency, or irreversible external state. Otherwise select only needed gates: `context`, exploration/research, `codebase-design`, `plan`, `tdd`, `implement`, changed-file anti-slop, `verification`, and risk-gated `code-review`.
+Load focused skills only after a named trigger:
 
-Delegate one write scope per agent. Every packet states objective, exact owned files, interfaces, exclusions, verification evidence, and concurrent-work preservation. Use the declared native role; unavailable role/model evidence fails that lane closed. OpenCodex owns external transport and credentials.
+- material ambiguity → `context` or `deep-interview`;
+- repository-mapping bottleneck → `codemap` or `omcs_explorer`;
+- current external behavior → `research` or `omcs_librarian`;
+- difficult reproducible diagnosis → `diagnose` or `omcs_oracle`;
+- material interface decision → `codebase-design`;
+- multi-step, delegated, persistent, or risky work → `plan`;
+- observable behavior change or regression → `tdd`;
+- concrete changed-file smell → `ai-slop-cleaner`;
+- justified behavior-preserving reduction → `simplify`;
+- final acceptance proof → `verification`; and
+- a review route → `code-review`.
+
+An auxiliary substitutes for the corresponding primary-context work; do not
+repeat its mapping, research, implementation, or review. Inspect its evidence
+only at the integration or acceptance boundary. Every delegation packet states
+objective, exact ownership, interfaces, exclusions, required evidence, and
+concurrent-work preservation. The primary never accepts a worker summary in
+place of inspecting the actual result.
+
+Pause only for a material decision that changes accepted scope, persistent or
+public contracts, security or credential ownership, architecture, dependencies,
+or irreversible external state. OpenCodex owns external transport and provider
+credentials.
 
 ## Exit evidence
 
-Inspect the accumulated diff and fresh commands yourself. Before final review, automatically require anti-slop for `thorough`, `audit`, and `full`, and whenever concrete smells appear; it may edit only changed-file scope. A correction or later edit invalidates verification and any review verdict; rerun both as applicable. Receipt: profile, route, skills, agents, approval, command outcomes, and review verdict—never timestamps, prompts, paths, tool summaries, or secrets.
+Use one final verification path proportionate to the acceptance claim. Repeat a
+command only after relevant inputs changed or when its prior evidence was
+incomplete. Run cleanup only when a concrete named finding exists in changed
+files; any cleanup edit invalidates affected verification and review.
+
+Acceptance evidence is a binding stop condition. Once the requested behavior,
+tests, and required review are green, stop. Do not make a post-green edit unless
+a named unresolved finding remains; if one is necessary, rerun affected
+verification and fresh review.
+
+Receipts may record only profile, route, triggered skills, selected agents,
+approval, command outcomes, and review verdict. Never record prompts, source
+text, paths, provider metadata, raw output, or secrets.
 
 ## Next gate
 
-Return evidence-backed acceptance only after `verification`; use fresh `code-review` when the declared route requires it. Review returns `ship`, `fix-first`, or `rethink`, never merge or deployment approval.
+Return an outcome-first acceptance report with the implemented result, fresh
+evidence, remaining limitation, and the explicit stop condition. A review
+returns `ship`, `fix-first`, or `rethink`; it never implies merge, deployment,
+or external-write approval.

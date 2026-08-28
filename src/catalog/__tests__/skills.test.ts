@@ -93,16 +93,19 @@ describe("lean skill catalog", () => {
 		assert.match(alias, /`omcs`/i);
 	});
 
-	it("makes the canonical OMCS skill bind effective policy through a deterministic kernel", () => {
+	it("makes the canonical OMCS skill a solo-first progressive kernel", () => {
 		const canonical = readSkill(join(repositoryRoot, "skills"), "omcs");
-		assert.match(canonical, /`omcs config show --effective --json`.*only pre-route task-tool exception/is);
-		assert.match(canonical, /current-request\/in-memory context.*overlay it after the command/is);
-		assert.match(canonical, /Natural-language urgency.*not a `fast` override/is);
-		assert.match(canonical, /Set `review` true when.*`thorough`.*`council`.*`reviewRequired`/is);
-		assert.match(canonical, /not settled or not delegable.*`audit`.*review.*`solo`/is);
-		assert.match(canonical, /visual.*`omcs_designer`.*wide.*`omcs_terra_fixer`.*`omcs_fixer`/is);
-		assert.match(canonical, /`verification` always/is);
-		assert.match(canonical, /Always declare `omcs_architect`/is);
+		assert.match(canonical, /`auto` and `fast` default to `solo`/is);
+		assert.match(canonical, /consequence.*separate from uncertainty/is);
+		assert.match(canonical, /at most one auxiliary/is);
+		assert.match(canonical, /substitutes for.*primary-context work/is);
+		assert.match(canonical, /preflight only (?:that|the) selected auxiliary/is);
+		assert.match(canonical, /optional.*unavailable.*reroute.*`solo`/is);
+		assert.match(canonical, /load focused skills only.*trigger/is);
+		assert.match(canonical, /concrete named finding/is);
+		assert.match(canonical, /acceptance evidence.*binding stop condition/is);
+		assert.doesNotMatch(canonical, /Before the route declaration, run `omcs config show/is);
+		assert.doesNotMatch(canonical, /automatically require anti-slop/is);
 	});
 
 	it("gives every composed skill entry, boundary, evidence, and a next gate", () => {
@@ -126,7 +129,7 @@ describe("lean skill catalog", () => {
 		assert.match(simplify.description, /behavior must remain unchanged/i);
 		const skill = readSkill(join(repositoryRoot, "skills"), "ai-slop-cleaner");
 		assert.match(skill, /generic behavior-preserving simplification belongs to `simplify`/i);
-		assert.match(skill, /automatically required before review/i);
+		assert.match(skill, /only when a concrete finding/i);
 		assert.match(skill, /changed-file scope/i);
 	});
 

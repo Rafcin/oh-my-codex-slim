@@ -1,7 +1,7 @@
 [
   {
     "name": "ai-slop-cleaner",
-    "description": "Use when an OMCS thorough, audit, or full route reaches pre-review changed-file inspection, or the user explicitly identifies AI-generated or slop code."
+    "description": "Use only for an explicit concrete changed-file finding of AI-generated or slop noise when behavior must be preserved."
   },
   {
     "name": "codebase-design",

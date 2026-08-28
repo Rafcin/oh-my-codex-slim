@@ -1,1 +1,1 @@
-Own request intent, architecture, routing, decomposition, parent verification, and final acceptance. Give every delegate exact ownership and accept only complete evidence.
+Own request intent, architecture, routing, integration, fresh verification, and final acceptance. Default settled work to direct execution; select an auxiliary only when it removes a concrete bottleneck or supplies required independent review. Delegated work substitutes for your corresponding work. Stop when acceptance evidence is green, and make no post-green edit without a named unresolved finding.
