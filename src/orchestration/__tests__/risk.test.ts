@@ -2,45 +2,73 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { selectRoute } from "../risk.js";
 
-describe("Sol-guided routing policy", () => {
-	it("keeps council requests outside delivery routing", () => {
-		assert.deepEqual(selectRoute({ settled: true, blastRadius: "wide", reviewRequired: true, visual: true, councilRequested: true }), {
-			mode: "full",
-			implementer: "omcs_designer",
-			reviewer: "omcs_reviewer",
-		});
+describe("OMCS thin routing kernel", () => {
+	it("defaults settled low-uncertainty work to solo", () => {
+		assert.deepEqual(selectRoute({
+			settled: true,
+			blastRadius: "narrow",
+			consequence: "low",
+			uncertainty: "low",
+			delegationValue: false,
+		}), { mode: "solo" });
 	});
 
-	it("keeps unsettled reviewed work architect-owned with a fresh audit", () => {
-		assert.deepEqual(selectRoute({ settled: false, blastRadius: "narrow", reviewRequired: true, delegable: true }), {
-			mode: "audit",
-			reviewer: "omcs_reviewer",
-		});
+	it("does not force review merely because a narrow surface is public or user-visible", () => {
+		assert.deepEqual(selectRoute({
+			settled: true,
+			blastRadius: "narrow",
+			consequence: "low",
+			uncertainty: "low",
+			delegationValue: false,
+			visual: true,
+		}), { mode: "solo" });
 	});
 
-	it("uses audit for reviewed work that is not delegated", () => {
-		assert.deepEqual(selectRoute({ settled: true, blastRadius: "moderate", reviewRequired: true, delegable: false }), {
-			mode: "audit",
-			reviewer: "omcs_reviewer",
-		});
+	it("uses one reviewer for material consequence combined with material uncertainty", () => {
+		assert.deepEqual(selectRoute({
+			settled: false,
+			blastRadius: "moderate",
+			consequence: "material",
+			uncertainty: "material",
+			delegationValue: false,
+		}), { mode: "audit", reviewer: "omcs_reviewer" });
 	});
 
-	it("uses full with Terra for reviewed wide-blast delegated work", () => {
-		assert.deepEqual(selectRoute({ settled: true, blastRadius: "wide", reviewRequired: true, delegable: true }), {
+	it("does not spend two auxiliaries when the profile budget is one", () => {
+		assert.deepEqual(selectRoute({
+			settled: true,
+			blastRadius: "wide",
+			consequence: "material",
+			uncertainty: "low",
+			delegationValue: true,
+			maxAuxiliaries: 1,
+		}), { mode: "audit", reviewer: "omcs_reviewer" });
+	});
+
+	it("delegates only when a bounded packet has concrete value", () => {
+		assert.deepEqual(selectRoute({
+			settled: true,
+			blastRadius: "moderate",
+			consequence: "low",
+			uncertainty: "low",
+			delegationValue: true,
+			maxAuxiliaries: 1,
+		}), { mode: "delegate", implementer: "omcs_fixer" });
+	});
+
+	it("lets thorough work use one implementer plus a fresh reviewer when valuable", () => {
+		assert.deepEqual(selectRoute({
+			settled: true,
+			blastRadius: "wide",
+			consequence: "material",
+			uncertainty: "low",
+			delegationValue: true,
+			forceReview: true,
+			maxAuxiliaries: 2,
+		}), {
 			mode: "full",
 			implementer: "omcs_terra_fixer",
 			reviewer: "omcs_reviewer",
-		});
-	});
-
-	it("uses the designer for visual implementation and Luna for bounded settled work", () => {
-		assert.deepEqual(selectRoute({ settled: true, blastRadius: "narrow", reviewRequired: false, visual: true, delegable: true }), {
-			mode: "delegate",
-			implementer: "omcs_designer",
-		});
-		assert.deepEqual(selectRoute({ settled: true, blastRadius: "moderate", reviewRequired: false, delegable: true }), {
-			mode: "delegate",
-			implementer: "omcs_fixer",
 		});
 	});
 });

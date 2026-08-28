@@ -11,23 +11,29 @@ describe("OMCS route declarations", () => {
 			risk: {
 				settled: true,
 				blastRadius: "wide",
-				reviewRequired: true,
+				consequence: "material",
+				uncertainty: "low",
+				delegationValue: true,
 				visual: false,
-				delegable: true,
 				needsResearch: false,
 				hasReproduction: true,
-				generatedCodeRisk: false,
+				concreteSlopFinding: false,
 			},
 			councilMetadata: { supported: true, modelLanes: ["native-sol", "native-terra"] },
+			capabilities: {
+				checked: ["omcs_terra_fixer", "omcs_reviewer"],
+				available: ["omcs_terra_fixer", "omcs_reviewer"],
+			},
 		}));
 
 		assert.equal(declaration, [
 			"OMCS ROUTE",
 			"profile: council",
 			"mode: full",
-			"risk: wide blast radius; review required",
-			"skills: context, codebase-design, plan, tdd, ai-slop-cleaner, verification, code-review",
+			"risk: material consequence; low uncertainty; wide blast radius",
+			"skills: codebase-design, plan, tdd, verification, code-review",
 			"agents: architect → terra-fixer → reviewer",
+			"budget: 2 auxiliaries; one final verification path; stop after green",
 			"council: enabled; advisers: native-sol-adviser, native-terra-adviser; lanes: native-sol, native-terra",
 			"approval: material-decisions",
 		].join("\n"));
@@ -39,12 +45,13 @@ describe("OMCS route declarations", () => {
 			risk: {
 				settled: true,
 				blastRadius: "narrow",
-				reviewRequired: false,
+				consequence: "low",
+				uncertainty: "low",
+				delegationValue: false,
 				visual: false,
-				delegable: true,
 				needsResearch: false,
 				hasReproduction: false,
-				generatedCodeRisk: false,
+				concreteSlopFinding: false,
 			},
 			councilMetadata: { supported: true, modelLanes: ["native-sol", "native-sol"] },
 		}));
@@ -58,19 +65,20 @@ describe("OMCS route declarations", () => {
 			risk: {
 				settled: true,
 				blastRadius: "moderate",
-				reviewRequired: false,
+				consequence: "low",
+				uncertainty: "low",
+				delegationValue: false,
 				visual: false,
-				delegable: true,
 				needsResearch: true,
 				hasReproduction: false,
-				generatedCodeRisk: false,
+				concreteSlopFinding: false,
 				needsRepositoryMapping: true,
 				needsDifficultDiagnosis: true,
 			},
 		}));
 
-		assert.match(declaration, /^mode: delegate$/m);
-		assert.match(declaration, /^agents: architect → explorer \+ librarian \+ oracle → fixer$/m);
+		assert.match(declaration, /^mode: solo$/m);
+		assert.match(declaration, /^agents: architect → explorer$/m);
 	});
 
 	it("rejects hostile direct policy casts instead of interpolating them", () => {
@@ -79,12 +87,13 @@ describe("OMCS route declarations", () => {
 			risk: {
 				settled: true,
 				blastRadius: "narrow",
-				reviewRequired: false,
+				consequence: "low",
+				uncertainty: "low",
+				delegationValue: false,
 				visual: false,
-				delegable: true,
 				needsResearch: false,
 				hasReproduction: false,
-				generatedCodeRisk: false,
+				concreteSlopFinding: false,
 			},
 		});
 		const hostile = {
@@ -100,12 +109,13 @@ describe("OMCS route declarations", () => {
 		const councilRisk = {
 			settled: true,
 			blastRadius: "wide" as const,
-			reviewRequired: true,
+			consequence: "material" as const,
+			uncertainty: "low" as const,
+			delegationValue: true,
 			visual: false,
-			delegable: true,
 			needsResearch: false,
 			hasReproduction: true,
-			generatedCodeRisk: false,
+			concreteSlopFinding: false,
 		};
 		const enabled = selectExecutionPolicy({
 			profile: "council",

@@ -1,20 +1,35 @@
 import type { ExecutionProfile } from "../config/omcs-config.js";
-import { selectRoute, type BlastRadius, type RouteDecision, type RiskInput } from "./risk.js";
+import {
+	selectRoute,
+	type AuxiliaryAgent,
+	type BlastRadius,
+	type Consequence,
+	type RouteDecision,
+	type RouteFallback,
+	type Uncertainty,
+} from "./risk.js";
 
 export type { RouteMode } from "./risk.js";
 
 export interface WorkSignals {
 	settled: boolean;
 	blastRadius: BlastRadius;
-	reviewRequired: boolean;
+	consequence: Consequence;
+	uncertainty: Uncertainty;
+	delegationValue: boolean;
 	visual: boolean;
-	delegable: boolean;
 	needsResearch: boolean;
 	hasReproduction: boolean;
-	generatedCodeRisk: boolean;
+	concreteSlopFinding: boolean;
 	needsRepositoryMapping?: boolean;
 	needsDifficultDiagnosis?: boolean;
 	needsArchitectureAdvice?: boolean;
+}
+
+/** Non-secret capability evidence for only the auxiliary roles selected by policy. */
+export interface CapabilityMetadata {
+	checked: readonly AuxiliaryAgent[];
+	available: readonly AuxiliaryAgent[];
 }
 
 /** Non-secret capability evidence supplied by the native runtime. */
@@ -31,6 +46,7 @@ export interface PolicyInput {
 	profile: ExecutionProfile;
 	risk: WorkSignals;
 	councilMetadata?: CouncilMetadata;
+	capabilities?: CapabilityMetadata;
 }
 
 export type PolicySkill =
@@ -52,11 +68,12 @@ export interface CouncilOverlay {
 
 export interface RiskEvidence {
 	blastRadius: BlastRadius;
+	consequence: Consequence;
+	uncertainty: Uncertainty;
 	unsettled: boolean;
-	reviewRequired: boolean;
 	visual: boolean;
 	research: boolean;
-	generatedCode: boolean;
+	concreteSlopFinding: boolean;
 }
 
 export interface AntiSlopGate {
@@ -64,6 +81,19 @@ export interface AntiSlopGate {
 	scope: "changed-files";
 	beforeReview: true;
 	invalidatesVerificationOnEdit: true;
+}
+
+export interface ExecutionBudget {
+	maxAuxiliaries: 1 | 2;
+	oneFinalVerificationPath: true;
+	repeatVerificationOnlyAfterInputChange: true;
+	postGreenEdits: "named-finding-only";
+}
+
+export interface CapabilityEvidence {
+	checked: AuxiliaryAgent[];
+	available: AuxiliaryAgent[];
+	fallback: RouteFallback | null;
 }
 
 export interface ExecutionPolicy {
@@ -74,6 +104,18 @@ export interface ExecutionPolicy {
 	risk: RiskEvidence;
 	supportingAgents: SupportingAgent[];
 	antiSlop: AntiSlopGate;
+	budget: ExecutionBudget;
+	capabilities: CapabilityEvidence;
+}
+
+export class MissingRequiredCapabilityError extends Error {
+	readonly capability: "omcs_reviewer";
+
+	constructor(capability: "omcs_reviewer") {
+		super(`OMCS requires unavailable capability: ${capability}`);
+		this.name = "MissingRequiredCapabilityError";
+		this.capability = capability;
+	}
 }
 
 const COUNCIL_LANES: readonly CouncilLane[] = ["native-sol", "native-luna", "native-terra"];
@@ -90,15 +132,57 @@ function provenCouncilLanes(metadata: CouncilMetadata | undefined): CouncilLane[
 	return lanes.length >= 2 ? [...lanes] : [];
 }
 
-function chooseRoute(profile: ExecutionProfile, risk: WorkSignals): RouteDecision {
-	const routedRisk: RiskInput = {
+function executionBudget(profile: ExecutionProfile): ExecutionBudget {
+	return {
+		maxAuxiliaries: profile === "thorough" || profile === "council" ? 2 : 1,
+		oneFinalVerificationPath: true,
+		repeatVerificationOnlyAfterInputChange: true,
+		postGreenEdits: "named-finding-only",
+	};
+}
+
+function chooseRoute(profile: ExecutionProfile, risk: WorkSignals, budget: ExecutionBudget): RouteDecision {
+	return selectRoute({
 		settled: risk.settled,
 		blastRadius: risk.blastRadius,
-		reviewRequired: profile === "thorough" || profile === "council" || risk.reviewRequired,
+		consequence: risk.consequence,
+		uncertainty: risk.uncertainty,
+		delegationValue: risk.delegationValue,
 		visual: risk.visual,
-		delegable: risk.delegable,
-	};
-	return selectRoute(routedRisk);
+		forceReview: profile === "thorough" || profile === "council",
+		maxAuxiliaries: budget.maxAuxiliaries,
+	});
+}
+
+function reconcileCapabilities(route: RouteDecision, metadata: CapabilityMetadata | undefined): {
+	route: RouteDecision;
+	evidence: CapabilityEvidence;
+} {
+	const checked = [...(metadata?.checked ?? [])];
+	const available = [...(metadata?.available ?? [])];
+	if (new Set(checked).size !== checked.length || new Set(available).size !== available.length || available.some((agent) => !checked.includes(agent))) {
+		throw new Error("OMCS capability evidence is invalid");
+	}
+
+	if (route.reviewer && checked.includes(route.reviewer) && !available.includes(route.reviewer)) {
+		throw new MissingRequiredCapabilityError(route.reviewer);
+	}
+
+	if (route.implementer && checked.includes(route.implementer) && !available.includes(route.implementer)) {
+		const fallback: RouteFallback = {
+			unavailable: route.implementer,
+			from: route.mode as "delegate" | "full",
+			reason: "optional-capability-unavailable",
+		};
+		return {
+			route: route.reviewer
+				? { mode: "audit", reviewer: route.reviewer, fallback }
+				: { mode: "solo", fallback },
+			evidence: { checked, available, fallback },
+		};
+	}
+
+	return { route, evidence: { checked, available, fallback: null } };
 }
 
 function addSkill(skills: PolicySkill[], skill: PolicySkill): void {
@@ -109,44 +193,47 @@ function selectSkills(profile: ExecutionProfile, risk: WorkSignals, route: Route
 	const skills: PolicySkill[] = [];
 	const thorough = profile === "thorough" || profile === "council";
 
-	if (thorough || !risk.settled) addSkill(skills, "context");
-	if (thorough || !risk.settled || risk.blastRadius !== "narrow") addSkill(skills, "codebase-design");
+	if (!risk.settled || risk.uncertainty === "material") addSkill(skills, "context");
+	if (thorough || risk.needsArchitectureAdvice || risk.blastRadius === "wide") addSkill(skills, "codebase-design");
 	if (risk.needsResearch) addSkill(skills, "research");
-	if (thorough || !risk.settled || risk.blastRadius !== "narrow") addSkill(skills, "plan");
-	if (thorough || !risk.settled || risk.hasReproduction) addSkill(skills, "tdd");
-
-	const antiSlop = thorough || route.mode === "audit" || route.mode === "full" || risk.generatedCodeRisk;
-	if (antiSlop) addSkill(skills, "ai-slop-cleaner");
+	if (thorough || risk.consequence === "material" || risk.uncertainty === "material" || route.mode === "delegate" || route.mode === "full") addSkill(skills, "plan");
+	if (thorough || risk.hasReproduction) addSkill(skills, "tdd");
+	if (risk.concreteSlopFinding) addSkill(skills, "ai-slop-cleaner");
 	addSkill(skills, "verification");
-	if (thorough || route.mode === "audit" || route.mode === "full") addSkill(skills, "code-review");
+	if (route.mode === "audit" || route.mode === "full") addSkill(skills, "code-review");
 
 	return skills;
 }
 
-function selectSupportingAgents(risk: WorkSignals): SupportingAgent[] {
-	const agents: SupportingAgent[] = [];
-	if (risk.needsRepositoryMapping) agents.push("omcs_explorer");
-	if (risk.needsResearch) agents.push("omcs_librarian");
-	if (risk.needsDifficultDiagnosis || risk.needsArchitectureAdvice) agents.push("omcs_oracle");
-	return agents;
+function routeAuxiliaries(route: RouteDecision): number {
+	return Number(route.implementer !== undefined) + Number(route.reviewer !== undefined);
+}
+
+function selectSupportingAgents(risk: WorkSignals, route: RouteDecision, budget: ExecutionBudget): SupportingAgent[] {
+	if (routeAuxiliaries(route) >= budget.maxAuxiliaries) return [];
+	if (risk.needsRepositoryMapping) return ["omcs_explorer"];
+	if (risk.needsResearch) return ["omcs_librarian"];
+	if (risk.needsDifficultDiagnosis || risk.needsArchitectureAdvice) return ["omcs_oracle"];
+	return [];
 }
 
 function riskEvidence(risk: WorkSignals): RiskEvidence {
 	return {
 		blastRadius: risk.blastRadius,
+		consequence: risk.consequence,
+		uncertainty: risk.uncertainty,
 		unsettled: !risk.settled,
-		reviewRequired: risk.reviewRequired,
 		visual: risk.visual,
 		research: risk.needsResearch,
-		generatedCode: risk.generatedCodeRisk,
+		concreteSlopFinding: risk.concreteSlopFinding,
 	};
 }
 
 /** Maps a resolved profile and observed work signals to visible, fail-closed execution gates. */
 export function selectExecutionPolicy(input: PolicyInput): ExecutionPolicy {
-	const route = chooseRoute(input.profile, input.risk);
-	const thorough = input.profile === "thorough" || input.profile === "council";
-	const antiSlopEnabled = thorough || route.mode === "audit" || route.mode === "full" || input.risk.generatedCodeRisk;
+	const budget = executionBudget(input.profile);
+	const reconciled = reconcileCapabilities(chooseRoute(input.profile, input.risk, budget), input.capabilities);
+	const route = reconciled.route;
 	const councilLanes = input.profile === "council" ? provenCouncilLanes(input.councilMetadata) : [];
 	const council: CouncilOverlay = input.profile !== "council"
 		? { status: "disabled", explicit: false, advisers: [], nativeLanes: [] }
@@ -165,12 +252,14 @@ export function selectExecutionPolicy(input: PolicyInput): ExecutionPolicy {
 		council,
 		skills: selectSkills(input.profile, input.risk, route),
 		risk: riskEvidence(input.risk),
-		supportingAgents: selectSupportingAgents(input.risk),
+		supportingAgents: selectSupportingAgents(input.risk, route, budget),
 		antiSlop: {
-			enabled: antiSlopEnabled,
+			enabled: input.risk.concreteSlopFinding,
 			scope: "changed-files",
 			beforeReview: true,
 			invalidatesVerificationOnEdit: true,
 		},
+		budget,
+		capabilities: reconciled.evidence,
 	};
 }
